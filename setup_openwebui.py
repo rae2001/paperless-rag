@@ -82,7 +82,7 @@ def main():
     # Check if RAG API is running
     if not check_api_health():
         print("⚠️  RAG API is not running. Starting it first...")
-        if not run_command("docker-compose up -d rag-api qdrant", "Starting RAG API and Qdrant"):
+        if not run_command("docker compose up -d rag-api qdrant", "Starting RAG API and Qdrant"):
             print("❌ Failed to start RAG API. Please fix this first.")
             sys.exit(1)
         
@@ -95,10 +95,10 @@ def main():
     
     # Stop any existing OpenWebUI
     print("\n🛑 Stopping existing services...")
-    run_command("docker-compose -f docker-compose-openwebui.yml down", "Stopping existing OpenWebUI")
+    run_command("docker compose -f docker-compose-openwebui.yml down", "Stopping existing OpenWebUI")
     
     # Start OpenWebUI with new compose file
-    if not run_command("docker-compose -f docker-compose-openwebui.yml up -d", "Starting OpenWebUI"):
+    if not run_command("docker compose -f docker-compose-openwebui.yml up -d", "Starting OpenWebUI"):
         print("❌ Failed to start OpenWebUI")
         sys.exit(1)
     
