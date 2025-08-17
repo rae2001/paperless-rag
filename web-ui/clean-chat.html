@@ -163,6 +163,27 @@
             word-wrap: break-word;
         }
 
+        /* Markdown formatting */
+        .message-content p { margin: 0.5rem 0; }
+        .message-content ul, .message-content ol { padding-left: 1.25rem; margin: 0.5rem 0; }
+        .message-content li { margin: 0.25rem 0; }
+        .message-content strong { font-weight: 600; }
+        .message-content em { font-style: italic; }
+        .message-content blockquote {
+            border-left: 3px solid var(--border);
+            margin: 0.75rem 0; padding: 0.25rem 0 0.25rem 0.75rem; color: var(--gray);
+            background: #f9fbff;
+        }
+        .message-content code { background: #f4f6f8; padding: 0.2rem 0.4rem; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        .message-content pre { background: #0f172a; color: #e2e8f0; padding: 0.85rem; border-radius: 8px; overflow-x: auto; }
+        .message-content pre code { background: transparent; padding: 0; }
+        .message-content hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+        .message-content h1, .message-content h2, .message-content h3 { margin: 0.6rem 0 0.4rem; }
+        .message-content table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+        .message-content th, .message-content td { border: 1px solid var(--border); padding: 0.5rem 0.6rem; text-align: left; }
+        .message-content tr:nth-child(even) { background: #fafbfc; }
+        .table-wrapper { overflow-x: auto; margin: 0.5rem 0; }
+
         .message-wrapper.user .message-content {
             background: var(--primary);
             color: white;
@@ -193,45 +214,20 @@
         }
 
         /* Citations */
-        .citations {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
+        .citations { margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); }
+        .sources-toggle { 
+            background: transparent; color: var(--gray); border: none; cursor: pointer; 
+            font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;
+            transition: color 0.2s; padding: 0.25rem 0.4rem; border-radius: 6px; 
         }
-
-        .citations-header {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--gray);
-            margin-bottom: 0.5rem;
-        }
-
-        .citation-item {
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.85rem;
-        }
-
-        .citation-title {
-            font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 0.25rem;
-        }
-
-        .citation-link {
-            color: var(--primary);
-            text-decoration: none;
-            font-size: 0.8rem;
-            display: inline-block;
-            margin-top: 0.25rem;
-        }
-
-        .citation-link:hover {
-            text-decoration: underline;
-        }
+        .sources-toggle:hover { color: var(--dark); background: #f7f7fb; }
+        .citation-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+        .chip { background: #f8fafc; border: 1px solid var(--border); border-radius: 999px; padding: 0.3rem 0.6rem; font-size: 0.78rem; color: #475569; display: inline-flex; align-items: center; gap: 0.35rem; }
+        .chip a { color: var(--primary); text-decoration: none; }
+        .chip a:hover { text-decoration: underline; }
+        .hidden { display: none; }
+        .copy-btn { background: transparent; border: none; color: var(--gray); cursor: pointer; font-size: 0.8rem; margin-left: 0.5rem; }
+        .copy-btn:hover { color: var(--dark); }
 
         /* Input Area */
         .input-area {
@@ -327,6 +323,19 @@
                 transform: translateY(-10px);
             }
         }
+
+        /* Message appear animation */
+        .message-wrapper.assistant { animation: fadeIn 260ms ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+
+        /* Pulse highlight for new assistant message */
+        .message-wrapper.assistant .message-content { position: relative; }
+        .message-wrapper.assistant .message-content::after {
+            content: '';
+            position: absolute; inset: 0; border-radius: 12px; pointer-events: none;
+            animation: glow 1.2s ease-out 1;
+        }
+        @keyframes glow { from { box-shadow: 0 0 0 0 rgba(94,114,228,0.28);} to { box-shadow: 0 0 0 10px rgba(94,114,228,0);} }
 
         /* Spinner */
         .spinner {
@@ -701,6 +710,67 @@
             }
         }
         
+        function renderMarkdown(text) {
+            // Lightweight markdown formatter: paragraphs, lists, code blocks, headings, tables
+            let html = text
+                .replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
+                .replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
+                .replace(/^#\s+(.*)$/gm, '<h1>$1</h1>')
+                .replace(/^\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/^\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // Code blocks ```
+            html = html.replace(/```([\s\S]*?)```/g, (m, code) => `<pre><code>${escapeHtml(code.trim())}</code></pre>`);
+
+            // Simple tables (lines with |)
+            const lines = html.split(/\n/);
+            let out = [];
+            let table = [];
+            const flushTable = () => {
+                if (table.length) {
+                    out.push('<div class="table-wrapper"><table>');
+                    table.forEach((row, idx) => {
+                        const cells = row.split('|').map(c => c.trim()).filter(Boolean);
+                        if (!cells.length) return;
+                        const tag = idx === 0 ? 'th' : 'td';
+                        out.push('<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>');
+                    });
+                    out.push('</table></div>');
+                    table = [];
+                }
+            };
+            for (const line of lines) {
+                if (/\|/.test(line) && !/^\s*-+\s*$/.test(line)) {
+                    table.push(line);
+                } else {
+                    flushTable();
+                    out.push(line);
+                }
+            }
+            flushTable();
+            html = out.join('\n');
+
+            // Lists
+            html = html.replace(/^(?:-\s+.+(?:\n|$))+?/gm, block => {
+                const items = block.trim().split(/\n/).map(li => li.replace(/^-[\s]+/, ''));
+                return '<ul>' + items.map(i => `<li>${i}</li>`).join('') + '</ul>';
+            });
+
+            // Paragraphs
+            html = html.replace(/(^|\n)([^<\n][^\n]*)/g, (m, pfx, line) => {
+                if (/^\s*$/.test(line) || /<(h\d|ul|li|pre|div|table|tr|td|th|blockquote)/.test(line)) return m;
+                return `${pfx}<p>${line}</p>`;
+            });
+
+            return html;
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
         function addMessage(content, type, citations = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
@@ -717,45 +787,49 @@
             // Add content
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            contentDiv.textContent = content;
+            // Render markdown for assistant; keep plain text for user
+            if (type === 'assistant') {
+                contentDiv.innerHTML = renderMarkdown(content);
+            } else {
+                contentDiv.textContent = content;
+            }
             
             // Add citations if present
             if (citations && citations.length > 0) {
                 const citationsDiv = document.createElement('div');
                 citationsDiv.className = 'citations';
-                
-                const citationsHeader = document.createElement('div');
-                citationsHeader.className = 'citations-header';
-                citationsHeader.textContent = 'Sources:';
-                citationsDiv.appendChild(citationsHeader);
-                
+                const toggle = document.createElement('button');
+                toggle.className = 'sources-toggle';
+                toggle.innerHTML = 'Sources <span>▼</span>';
+                citationsDiv.appendChild(toggle);
+                const chips = document.createElement('div');
+                chips.className = 'citation-chips hidden';
                 citations.forEach(citation => {
-                    const citationItem = document.createElement('div');
-                    citationItem.className = 'citation-item';
-                    
-                    const title = document.createElement('div');
-                    title.className = 'citation-title';
-                    title.textContent = citation.title;
-                    if (citation.page) {
-                        title.textContent += `, Page ${citation.page}`;
-                    }
-                    if (citation.score) {
-                        title.textContent += ` (${(citation.score * 100).toFixed(1)}% match)`;
-                    }
-                    citationItem.appendChild(title);
-                    
+                    const chip = document.createElement('span');
+                    chip.className = 'chip';
+                    const label = document.createElement('span');
+                    const pageText = citation.page ? `, p.${citation.page}` : '';
+                    label.textContent = `${citation.title}${pageText}`;
+                    chip.appendChild(label);
                     if (citation.url) {
                         const link = document.createElement('a');
-                        link.className = 'citation-link';
                         link.href = citation.url;
                         link.target = '_blank';
-                        link.textContent = 'View in Paperless →';
-                        citationItem.appendChild(link);
+                        link.textContent = 'open';
+                        chip.appendChild(link);
                     }
-                    
-                    citationsDiv.appendChild(citationItem);
+                    chips.appendChild(chip);
                 });
-                
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.textContent = 'copy';
+                copyBtn.title = 'Copy answer';
+                copyBtn.addEventListener('click', async () => {
+                    try { await navigator.clipboard.writeText(content); copyBtn.textContent = 'copied'; setTimeout(()=>copyBtn.textContent='copy',1200);} catch {}
+                });
+                citationsDiv.appendChild(copyBtn);
+                toggle.addEventListener('click', ()=> chips.classList.toggle('hidden'));
+                citationsDiv.appendChild(chips);
                 contentDiv.appendChild(citationsDiv);
             }
             
