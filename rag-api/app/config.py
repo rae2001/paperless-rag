@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     CHUNK_TOKENS: int = 600
     CHUNK_OVERLAP: int = 100
     MAX_SNIPPETS_TOKENS: int = 2000
-    SIMILARITY_THRESHOLD: float = 0.75
+    SIMILARITY_THRESHOLD: float = 0.3
     
     # Server Configuration
     SERVER_HOST: str = "0.0.0.0"

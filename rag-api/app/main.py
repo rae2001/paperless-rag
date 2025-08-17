@@ -215,7 +215,7 @@ async def ask_question(
         
         # Only search documents if the query warrants it
         if should_search_documents(request.query):
-            logger.info("Searching documents for relevant context")
+            logger.info(f"Searching documents for query: {request.query}")
             
             # Search for relevant chunks
             top_k = request.top_k or settings.RAG_TOP_K
@@ -227,17 +227,24 @@ async def ask_question(
                 filter_tags=request.filter_tags
             )
             
-            # Filter by similarity threshold and deduplicate
+            # Process and deduplicate chunks
             if chunks:
-                # Filter chunks by similarity threshold
-                similarity_threshold = getattr(settings, 'SIMILARITY_THRESHOLD', 0.75)
-                high_quality_chunks = [chunk for chunk in chunks if chunk.get("score", 0) >= similarity_threshold]
+                logger.info(f"Found {len(chunks)} document chunks from vector search")
                 
-                if high_quality_chunks:
-                    chunks = deduplicate_chunks(high_quality_chunks)
-                    logger.info(f"Found {len(chunks)} high-quality document chunks (threshold: {similarity_threshold})")
+                # Log scores for debugging
+                for i, chunk in enumerate(chunks[:3]):  # Log first 3 results
+                    logger.info(f"Chunk {i+1}: score={chunk.get('score', 0):.3f}, title={chunk.get('title', 'Unknown')}")
+                
+                # Apply similarity threshold filter
+                similarity_threshold = getattr(settings, 'SIMILARITY_THRESHOLD', 0.3)
+                filtered_chunks = [chunk for chunk in chunks if chunk.get("score", 0) >= similarity_threshold]
+                
+                if filtered_chunks:
+                    # Deduplicate and use filtered chunks
+                    chunks = deduplicate_chunks(filtered_chunks)
+                    logger.info(f"After filtering (threshold: {similarity_threshold}): {len(chunks)} chunks")
                     
-                    # Build citations only for high-quality chunks
+                    # Build citations
                     for chunk in chunks:
                         citation = Citation(
                             doc_id=chunk["doc_id"],
@@ -249,7 +256,7 @@ async def ask_question(
                         )
                         citations.append(citation)
                 else:
-                    logger.info(f"No chunks met similarity threshold of {similarity_threshold}")
+                    logger.warning(f"No chunks met similarity threshold of {similarity_threshold}. Raw scores: {[c.get('score', 0) for c in chunks[:5]]}")
                     chunks = []
             else:
                 logger.info("No relevant document chunks found")
