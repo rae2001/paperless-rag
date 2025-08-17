@@ -100,28 +100,17 @@ if "*" in cors_origins:
 # Add CORS middleware with explicit configuration
 from starlette.middleware.cors import CORSMiddleware as StarletteCORS
 
+# Use a permissive CORS policy suitable for LAN access. We avoid credentials so that
+# we can safely allow any origin. The middleware will automatically handle preflight
+# (OPTIONS) requests and echo the requesting Origin.
 app.add_middleware(
     StarletteCORS,
-    allow_origins=cors_origins,
-    allow_credentials=True,
+    allow_origins=[],
+    allow_origin_regex=".*",
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600,
+    allow_headers=["*"]
 )
-
-# Add custom middleware to ensure CORS headers are always present
-@app.middleware("http")
-async def ensure_cors_headers(request, call_next):
-    response = await call_next(request)
-    # Add CORS headers if not already present
-    if "access-control-allow-origin" not in response.headers:
-        origin = request.headers.get("origin", "*")
-        response.headers["access-control-allow-origin"] = origin if origin in cors_origins or "*" in cors_origins else cors_origins[0]
-        response.headers["access-control-allow-credentials"] = "true"
-        response.headers["access-control-allow-methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD"
-        response.headers["access-control-allow-headers"] = "*"
-    return response
 
 
 # Dependency to get Qdrant client
