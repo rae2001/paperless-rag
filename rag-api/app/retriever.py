@@ -313,22 +313,10 @@ def deduplicate_chunks(chunks: List[Dict[str, Any]], similarity_threshold: float
     deduplicated = []
     
     # First pass: Take best chunk from each document
-    # Group by project/topic to avoid mixing unrelated projects
     for doc_id, doc_chunk_list in doc_chunks.items():
         # Sort by score and take the best one
         best_chunk = max(doc_chunk_list, key=lambda x: x.get("score", 0))
         deduplicated.append(best_chunk)
-        
-    # Filter out low-scoring chunks that might be from unrelated projects
-    # Keep only chunks with score > 0.3 or from the top 3 documents
-    deduplicated.sort(key=lambda x: x.get("score", 0), reverse=True)
-    if len(deduplicated) > 3:
-        # Keep top 3 documents plus any others with high scores
-        filtered = deduplicated[:3]
-        for chunk in deduplicated[3:]:
-            if chunk.get("score", 0) > 0.35:
-                filtered.append(chunk)
-        deduplicated = filtered
     
     # Second pass: Add additional high-scoring chunks if not too similar
     remaining_chunks = []
