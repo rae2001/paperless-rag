@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import time
 from contextlib import asynccontextmanager
 from typing import List, Optional
 import asyncio
@@ -466,6 +467,108 @@ async def root():
             "stats": "/stats"
         }
     }
+
+
+@app.get("/v1/models")
+async def list_models():
+    """OpenAI-compatible models endpoint for OpenWebUI integration."""
+    return {
+        "data": [
+            {
+                "id": "openai/gpt-oss-20b",
+                "object": "model",
+                "owned_by": "paperless-rag",
+                "created": 1677610602,
+                "permission": [],
+                "root": "openai/gpt-oss-20b",
+                "parent": None,
+            }
+        ],
+        "object": "list"
+    }
+
+
+@app.post("/v1/chat/completions")
+async def chat_completions(
+    request: dict,
+    qdrant: QdrantClient = Depends(get_qdrant_client),
+    embedder: SentenceTransformer = Depends(get_embedding_model)
+):
+    """OpenAI-compatible chat completions endpoint for OpenWebUI."""
+    try:
+        # Extract the last message content as the query
+        messages = request.get("messages", [])
+        if not messages:
+            raise ValueError("No messages provided")
+        
+        # Get the last user message
+        user_message = None
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                user_message = msg.get("content", "")
+                break
+        
+        if not user_message:
+            raise ValueError("No user message found")
+        
+        # Use our existing ask logic
+        chunks = []
+        citations = []
+        
+        # Only search documents if the query warrants it
+        if should_search_documents(user_message):
+            logger.info("Searching documents for relevant context")
+            
+            # Search for relevant chunks
+            top_k = settings.RAG_TOP_K
+            chunks = search_similar_chunks(
+                qdrant_client=qdrant,
+                embedding_model=embedder,
+                query=user_message,
+                top_k=top_k
+            )
+            
+            # Filter by similarity threshold and deduplicate
+            if chunks:
+                similarity_threshold = getattr(settings, 'SIMILARITY_THRESHOLD', 0.75)
+                high_quality_chunks = [chunk for chunk in chunks if chunk.get("score", 0) >= similarity_threshold]
+                
+                if high_quality_chunks:
+                    chunks = deduplicate_chunks(high_quality_chunks)
+                    logger.info(f"Found {len(chunks)} high-quality document chunks")
+                else:
+                    logger.info(f"No chunks met similarity threshold of {similarity_threshold}")
+                    chunks = []
+        else:
+            logger.info("Casual conversation detected, skipping document search")
+        
+        # Generate answer using LLM
+        llm_result = await generate_answer(user_message, chunks)
+        
+        # Format as OpenAI-compatible response
+        response = {
+            "id": f"chatcmpl-{int(time.time())}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": settings.OPENROUTER_MODEL,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": llm_result["answer"]
+                    },
+                    "finish_reason": "stop"
+                }
+            ],
+            "usage": llm_result.get("usage", {})
+        }
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in chat completions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/cors-debug")

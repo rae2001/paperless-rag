@@ -89,23 +89,21 @@ curl http://localhost:8088/health
 
 You should see all components as "healthy".
 
-### 5. Start Web UI (Optional but Recommended)
+### 5. Start OpenWebUI (Recommended)
 
 ```bash
-# 🚀 NEW: Modern Streamlit UI (Recommended)
-python3 start_streamlit.py
-
-# Or use the interactive launcher
-python3 run_ui.py
+# 🚀 Setup professional OpenWebUI interface
+python3 setup_openwebui.py
 ```
 
-**🎯 Streamlit UI Features:**
-- ✅ No CORS issues (unlike the old UI)
-- ✅ Beautiful modern chat interface
-- ✅ Real-time system monitoring
-- ✅ Citation display with document links
-- ✅ Quick question buttons
-- ✅ Auto-opens at http://192.168.1.77:8501
+**🎯 OpenWebUI Features:**
+- ✅ Professional ChatGPT-like interface
+- ✅ Multi-user support with accounts
+- ✅ Conversation history and management
+- ✅ Built-in RAG integration
+- ✅ Model switching capabilities
+- ✅ Much more stable than custom solutions
+- ✅ Opens at http://192.168.1.77:3000
 
 ### 6. Ingest Documents
 
@@ -127,11 +125,11 @@ curl -X POST http://localhost:8088/ingest \
 
 ### 7. Ask Questions
 
-**Option A: Use the Streamlit UI (Recommended)**
+**Option A: Use OpenWebUI (Recommended)**
 ```bash
-python3 start_streamlit.py
+python3 setup_openwebui.py
 ```
-This opens a modern chat interface at http://192.168.1.77:8501
+This opens a professional chat interface at http://192.168.1.77:3000
 
 **Option B: Use curl commands**
 ```bash
