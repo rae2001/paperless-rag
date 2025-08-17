@@ -20,7 +20,7 @@ def search_similar_chunks(
     query: str,
     top_k: int = None,
     filter_tags: Optional[List[str]] = None,
-    score_threshold: float = 0.1
+    score_threshold: float = 0.3
 ) -> List[Dict[str, Any]]:
     """
     Search for similar document chunks using vector similarity.

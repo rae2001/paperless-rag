@@ -92,21 +92,14 @@ You should see all components as "healthy".
 ### 5. Start Web UI (Optional but Recommended)
 
 ```bash
-# 🏢 Professional Gradio UI (Recommended for Business)
-python3 start_gradio.py
-
-# Or use the interactive launcher
-python3 run_ui.py
+python3 start_ui.py
 ```
 
-**🎯 Professional Gradio UI Features:**
-- ✅ Business-ready corporate interface
-- ✅ Clean, professional design suitable for company staff
-- ✅ Excellent integration with existing systems
-- ✅ Real-time system monitoring and status
-- ✅ Document citations with relevance scores
-- ✅ Quick action buttons for common queries
-- ✅ Accessible at http://192.168.1.77:7860
+This will:
+- ✅ Update API CORS settings 
+- ✅ Start web server at http://localhost:3000
+- ✅ Open browser automatically
+- ✅ Provide a beautiful chat interface
 
 ### 6. Ingest Documents
 
@@ -128,11 +121,11 @@ curl -X POST http://localhost:8088/ingest \
 
 ### 7. Ask Questions
 
-**Option A: Use the Professional Gradio UI (Recommended)**
+**Option A: Use the Web UI (Recommended)**
 ```bash
-python3 start_gradio.py
+python3 start_ui.py
 ```
-This opens a business-ready interface at http://192.168.1.77:7860
+This opens a beautiful web interface at http://localhost:3000
 
 **Option B: Use curl commands**
 ```bash

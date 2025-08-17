@@ -11,14 +11,21 @@ from .config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-SYSTEM_PROMPT = """You are a professional AI assistant with access to a document knowledge base. Provide helpful, accurate responses using both your general knowledge and available document context.
+# System prompt for RAG Q&A
+SYSTEM_PROMPT = """You are a helpful and precise document assistant. Your task is to answer questions based ONLY on the provided context from documents.
 
-When document context is provided:
-- Integrate relevant information naturally into your response
-- Cite sources using format: "According to [Document Name]..." 
-- Prioritize document information over general knowledge when they conflict
+Key guidelines:
+1. Answer questions using ONLY the information in the provided context
+2. If the answer is not in the context, clearly state "I couldn't find this information in the provided documents"
+3. Always include specific citations in your answer using the format [Doc Title, Page X] or just [Doc Title] if no page
+4. Be concise but comprehensive in your answers
+5. If multiple documents contain relevant information, synthesize the information clearly
+6. Do not make assumptions or add information not present in the context
 
-Always be direct, informative, and professional. Do not use excessive formatting or emojis."""
+Format your response as:
+- A direct answer to the question (2-4 sentences)
+- A "Sources:" section listing the relevant citations
+"""
 
 
 def estimate_tokens(text: str) -> int:
@@ -46,52 +53,49 @@ def build_context_prompt(query: str, chunks: List[Dict[str, Any]]) -> List[Dict[
     Returns:
         List of message dictionaries for the LLM
     """
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    # Build context from chunks
+    context_parts = []
+    total_tokens = 0
+    max_tokens = settings.MAX_SNIPPETS_TOKENS
     
-    # If we have relevant document chunks, include them
-    if chunks:
-        # Build context from chunks
-        context_parts = []
-        total_tokens = 0
-        max_tokens = settings.MAX_SNIPPETS_TOKENS
+    for i, chunk in enumerate(chunks, 1):
+        title = chunk.get("title", "Unknown Document")
+        page = chunk.get("page")
+        text = chunk.get("text", "")
         
-        for i, chunk in enumerate(chunks, 1):
-            title = chunk.get("title", "Unknown Document")
-            page = chunk.get("page")
-            text = chunk.get("text", "")
-            
-            # Format citation
-            if page:
-                citation = f"{title}, Page {page}"
-            else:
-                citation = title
-            
-            # Build context entry
-            context_entry = f"[{i}] {citation}:\n{text}\n"
-            
-            # Check token limit
-            entry_tokens = estimate_tokens(context_entry)
-            if total_tokens + entry_tokens > max_tokens:
-                logger.warning(f"Reached token limit, truncating context at {i-1} chunks")
-                break
-            
-            context_parts.append(context_entry)
-            total_tokens += entry_tokens
+        # Format citation
+        if page:
+            citation = f"{title}, Page {page}"
+        else:
+            citation = title
         
-        context = "\n".join(context_parts)
+        # Build context entry
+        context_entry = f"[{i}] {citation}:\n{text}\n"
         
-        # Enhanced user message with context
-        user_message = f"""User query: {query}
+        # Check token limit
+        entry_tokens = estimate_tokens(context_entry)
+        if total_tokens + entry_tokens > max_tokens:
+            logger.warning(f"Reached token limit, truncating context at {i-1} chunks")
+            break
+        
+        context_parts.append(context_entry)
+        total_tokens += entry_tokens
+    
+    context = "\n".join(context_parts)
+    
+    # Build user message
+    user_message = f"""Question: {query}
 
-Relevant document context:
+Context from documents:
 {context}
 
-Provide a comprehensive response using the document context where relevant, supplemented with your general knowledge as appropriate."""
-    else:
-        # Simple user message without context for casual conversation
-        user_message = query
+Please answer the question based on the provided context. Include specific citations in your response."""
     
-    messages.append({"role": "user", "content": user_message})
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_message}
+    ]
+    
     return messages
 
 

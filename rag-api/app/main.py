@@ -171,102 +171,55 @@ async def health_check(
     )
 
 
-def should_search_documents(query: str) -> bool:
-    """Determine if a query warrants searching documents based on intent analysis."""
-    query_lower = query.lower().strip()
-    
-    # Don't search for simple greetings or system questions
-    if len(query.split()) <= 3:
-        casual_indicators = ["hi", "hello", "hey", "thanks", "bye", "how are you", "what can you do"]
-        if any(indicator in query_lower for indicator in casual_indicators):
-            return False
-    
-    # Always search for explicit document/content queries
-    document_indicators = [
-        "document", "file", "report", "contract", "procedure", "specification",
-        "my documents", "show me", "find", "search", "what do i have",
-        "according to", "based on", "in my files"
-    ]
-    
-    if any(indicator in query_lower for indicator in document_indicators):
-        return True
-    
-    # Search for question words that likely reference content
-    question_indicators = ["what", "how", "when", "where", "why", "which", "who"]
-    if any(word in query_lower for word in question_indicators) and len(query.split()) > 2:
-        return True
-    
-    # For other queries longer than 4 words, search documents
-    return len(query.split()) > 4
-
-
 @app.post("/ask", response_model=AskResponse)
 async def ask_question(
     request: AskRequest,
     qdrant: QdrantClient = Depends(get_qdrant_client),
     embedder: SentenceTransformer = Depends(get_embedding_model)
 ):
-    """Ask a question - enhanced conversational AI with document knowledge."""
+    """Ask a question about the documents."""
     logger.info(f"Received question: {request.query[:100]}...")
     
     try:
-        chunks = []
-        citations = []
+        # Search for relevant chunks
+        top_k = request.top_k or settings.RAG_TOP_K
+        chunks = search_similar_chunks(
+            qdrant_client=qdrant,
+            embedding_model=embedder,
+            query=request.query,
+            top_k=top_k,
+            filter_tags=request.filter_tags
+        )
         
-        # Only search documents if the query warrants it
-        if should_search_documents(request.query):
-            logger.info(f"Searching documents for query: {request.query}")
-            
-            # Search for relevant chunks
-            top_k = request.top_k or settings.RAG_TOP_K
-            chunks = search_similar_chunks(
-                qdrant_client=qdrant,
-                embedding_model=embedder,
+        if not chunks:
+            logger.warning("No relevant chunks found for query")
+            return AskResponse(
+                answer="I couldn't find any relevant information in the documents to answer your question.",
+                citations=[],
                 query=request.query,
-                top_k=top_k,
-                filter_tags=request.filter_tags
+                model_used=settings.OPENROUTER_MODEL
             )
-            
-            # Process and deduplicate chunks
-            if chunks:
-                logger.info(f"Found {len(chunks)} document chunks from vector search")
-                
-                # Log scores for debugging
-                for i, chunk in enumerate(chunks[:3]):  # Log first 3 results
-                    logger.info(f"Chunk {i+1}: score={chunk.get('score', 0):.3f}, title={chunk.get('title', 'Unknown')}")
-                
-                # Apply similarity threshold filter
-                similarity_threshold = getattr(settings, 'SIMILARITY_THRESHOLD', 0.3)
-                filtered_chunks = [chunk for chunk in chunks if chunk.get("score", 0) >= similarity_threshold]
-                
-                if filtered_chunks:
-                    # Deduplicate and use filtered chunks
-                    chunks = deduplicate_chunks(filtered_chunks)
-                    logger.info(f"After filtering (threshold: {similarity_threshold}): {len(chunks)} chunks")
-                    
-                    # Build citations
-                    for chunk in chunks:
-                        citation = Citation(
-                            doc_id=chunk["doc_id"],
-                            title=chunk["title"],
-                            page=chunk.get("page"),
-                            score=chunk["score"],
-                            url=build_document_url(chunk["doc_id"]),
-                            snippet=chunk["text"][:250] + "..." if len(chunk["text"]) > 250 else chunk["text"]
-                        )
-                        citations.append(citation)
-                else:
-                    logger.warning(f"No chunks met similarity threshold of {similarity_threshold}. Raw scores: {[c.get('score', 0) for c in chunks[:5]]}")
-                    chunks = []
-            else:
-                logger.info("No relevant document chunks found")
-        else:
-            logger.info("Casual conversation detected, skipping document search")
         
-        # Generate answer using LLM (with or without document context)
+        # Deduplicate similar chunks
+        chunks = deduplicate_chunks(chunks)
+        
+        # Generate answer using LLM
         llm_result = await generate_answer(request.query, chunks)
         
-        logger.info(f"Generated conversational response with {len(citations)} citations")
+        # Build citations
+        citations = []
+        for chunk in chunks:
+            citation = Citation(
+                doc_id=chunk["doc_id"],
+                title=chunk["title"],
+                page=chunk.get("page"),
+                score=chunk["score"],
+                url=build_document_url(chunk["doc_id"]),
+                snippet=chunk["text"][:300] + "..." if len(chunk["text"]) > 300 else chunk["text"]
+            )
+            citations.append(citation)
+        
+        logger.info(f"Generated answer with {len(citations)} citations")
         
         return AskResponse(
             answer=llm_result["answer"],
