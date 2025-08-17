@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     
     # OpenRouter Configuration
     OPENROUTER_API_KEY: str
-    OPENROUTER_MODEL: str = "openai/gpt-4o-mini"
+    OPENROUTER_MODEL: str = "openai/gpt-oss-20b"
     
     # Vector Database Configuration
     QDRANT_URL: str = "http://qdrant:6333"

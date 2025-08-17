@@ -56,7 +56,7 @@ PAPERLESS_API_TOKEN=your_paperless_token_here
 
 # OpenRouter Configuration
 OPENROUTER_API_KEY=your_openrouter_key_here
-OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_MODEL=openai/gpt-oss-20b
 
 # Other settings use defaults...
 ```
@@ -163,7 +163,7 @@ Ask questions about your documents.
     }
   ],
   "query": "What is the warranty period?",
-  "model_used": "openai/gpt-4o-mini"
+  "model_used": "openai/gpt-oss-20b"
 }
 ```
 
@@ -196,7 +196,7 @@ Key environment variables:
 | `PAPERLESS_BASE_URL` | - | Your paperless-ngx URL |
 | `PAPERLESS_API_TOKEN` | - | Paperless API token |
 | `OPENROUTER_API_KEY` | - | OpenRouter API key |
-| `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | LLM model to use |
+| `OPENROUTER_MODEL` | `openai/gpt-oss-20b` | LLM model to use |
 | `EMBEDDING_MODEL` | `BAAI/bge-m3` | Embedding model |
 | `RAG_TOP_K` | `6` | Number of chunks to retrieve |
 | `CHUNK_TOKENS` | `800` | Max tokens per chunk |
@@ -308,7 +308,7 @@ Change `EMBEDDING_MODEL` in `.env` to any sentence-transformers compatible model
 - **Lower TOP_K** (3-5): Faster but may miss relevant info
 
 ### Model Selection
-- **Free models**: `openai/gpt-4o-mini`, slower but cost-effective
+- **Free models**: `openai/gpt-oss-20b`, slower but cost-effective
 - **Paid models**: `openai/gpt-4`, `anthropic/claude-3-sonnet`, faster and higher quality
 
 ## Security

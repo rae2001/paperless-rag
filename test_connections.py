@@ -100,7 +100,7 @@ async def test_openrouter():
     print("-" * 40)
     
     api_key = get_env_var('OPENROUTER_API_KEY')
-    model = get_env_var('OPENROUTER_MODEL', 'openai/gpt-4o-mini')
+    model = get_env_var('OPENROUTER_MODEL', 'openai/gpt-oss-20b')
     
     if not api_key:
         print("❌ OPENROUTER_API_KEY not set in .env")
@@ -197,7 +197,7 @@ async def main():
         print("\n💳 OpenRouter Troubleshooting:")
         print("   1. Add credits: https://openrouter.ai/settings/credits")
         print("   2. Check API key: https://openrouter.ai/settings/keys")
-        print("   3. Try free models if testing: openai/gpt-4o-mini")
+        print("   3. Try free models if testing: openai/gpt-oss-20b")
     
     if paperless_ok and openrouter_ok:
         print("\n🎉 All connections working! Your RAG system should work perfectly.")
