@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paperless RAG - Clean Chat Interface</title>
+    <style>
+        :root {
+            --primary: #5e72e4;
+            --primary-dark: #4c63d2;
+            --success: #2dce89;
+            --danger: #f5365c;
+            --warning: #fb6340;
+            --info: #11cdef;
+            --light: #f6f9fc;
+            --dark: #32325d;
+            --gray: #8898aa;
+            --border: #e9ecef;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Header */
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--danger);
+            transition: background 0.3s;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .api-url-display {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 1.5rem;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .message-wrapper.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .message-wrapper.user .message-avatar {
+            background: var(--primary);
+            color: white;
+        }
+
+        .message-wrapper.assistant .message-avatar {
+            background: var(--light);
+            color: var(--gray);
+            border: 1px solid var(--border);
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+
+        .message-wrapper.user .message-content {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-wrapper.assistant .message-content {
+            background: var(--light);
+            color: var(--dark);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-wrapper.error .message-content {
+            background: #fef2f2;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+            max-width: 90%;
+        }
+
+        .message-wrapper.system .message-content {
+            background: #f0f9ff;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            max-width: 90%;
+            text-align: center;
+            margin: 0 auto;
+        }
+
+        /* Citations */
+        .citations {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .citations-header {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+        }
+
+        .citation-item {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .citation-title {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .citation-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-top: 0.25rem;
+        }
+
+        .citation-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 1.5rem;
+            background: white;
+            border-top: 1px solid var(--border);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--primary);
+        }
+
+        .send-button {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(94, 114, 228, 0.3);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading Animation */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            color: var(--gray);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--gray);
+            border-radius: 50%;
+            animation: typingAnimation 1.5s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingAnimation {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Config Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .modal-button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-button.primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .modal-button.secondary {
+            background: var(--light);
+            color: var(--dark);
+            border: 1px solid var(--border);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+            }
+
+            .header h1 {
+                font-size: 1.25rem;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .api-url-display {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Paperless RAG Chat</h1>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Connecting...</span>
+                <span class="api-url-display" id="apiUrlDisplay" title="Click to change"></span>
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div class="messages-container" id="messagesContainer">
+                <div class="message">
+                    <div class="message-wrapper system">
+                        <div class="message-content">
+                            Welcome! I can help you search and ask questions about your documents. Type a message below to get started.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea 
+                    id="messageInput" 
+                    class="input-field" 
+                    placeholder="Ask a question about your documents..."
+                    rows="1"
+                ></textarea>
+                <button id="sendButton" class="send-button">
+                    <span id="sendButtonText">Send</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">API Configuration</div>
+            <input 
+                type="text" 
+                id="apiUrlInput" 
+                class="modal-input" 
+                placeholder="Enter API URL (e.g., http://localhost:8088)"
+            >
+            <div class="modal-buttons">
+                <button class="modal-button secondary" onclick="closeConfigModal()">Cancel</button>
+                <button class="modal-button primary" onclick="saveApiUrl()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const DEFAULT_API_URL = 'http://localhost:8088';
+        const STORAGE_KEY = 'paperless-rag-api-url';
+        
+        // State
+        let apiUrl = localStorage.getItem(STORAGE_KEY) || DEFAULT_API_URL;
+        let isConnected = false;
+        let isLoading = false;
+        let reconnectInterval = null;
+        
+        // DOM Elements
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const sendButtonText = document.getElementById('sendButtonText');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const apiUrlDisplay = document.getElementById('apiUrlDisplay');
+        const configModal = document.getElementById('configModal');
+        const apiUrlInput = document.getElementById('apiUrlInput');
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
+        
+        function initializeApp() {
+            // Set up event listeners
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Auto-resize textarea
+            messageInput.addEventListener('input', () => {
+                messageInput.style.height = 'auto';
+                messageInput.style.height = messageInput.scrollHeight + 'px';
+            });
+            
+            // API URL click handler
+            apiUrlDisplay.addEventListener('click', showConfigModal);
+            
+            // Update display
+            updateApiUrlDisplay();
+            
+            // Start connection check
+            checkConnection();
+            startReconnectTimer();
+        }
+        
+        function updateApiUrlDisplay() {
+            apiUrlDisplay.textContent = `(${apiUrl})`;
+        }
+        
+        function showConfigModal() {
+            apiUrlInput.value = apiUrl;
+            configModal.classList.add('active');
+            apiUrlInput.focus();
+        }
+        
+        function closeConfigModal() {
+            configModal.classList.remove('active');
+        }
+        
+        function saveApiUrl() {
+            const newUrl = apiUrlInput.value.trim();
+            if (newUrl) {
+                apiUrl = newUrl.replace(/\/$/, ''); // Remove trailing slash
+                localStorage.setItem(STORAGE_KEY, apiUrl);
+                updateApiUrlDisplay();
+                closeConfigModal();
+                checkConnection();
+            }
+        }
+        
+        async function checkConnection() {
+            console.log(`Checking connection to: ${apiUrl}`);
+            
+            try {
+                const response = await fetch(`${apiUrl}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                    // Don't include credentials for health check
+                    credentials: 'omit'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    setConnectionStatus(true);
+                    console.log('Connected successfully:', data);
+                } else {
+                    console.error('Health check failed:', response.status);
+                    setConnectionStatus(false);
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                setConnectionStatus(false);
+                
+                // If it's a CORS error, show helpful message
+                if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                    showSystemMessage('Connection failed. This might be a CORS issue. Try clicking on the API URL above to configure a different address, or ensure the API is running with proper CORS settings.', 'error');
+                }
+            }
+        }
+        
+        function setConnectionStatus(connected) {
+            isConnected = connected;
+            statusDot.classList.toggle('connected', connected);
+            statusText.textContent = connected ? 'Connected' : 'Disconnected';
+            
+            if (connected) {
+                // Clear any connection error messages
+                const errorMessages = messagesContainer.querySelectorAll('.message-wrapper.error');
+                errorMessages.forEach(msg => {
+                    if (msg.textContent.includes('Connection')) {
+                        msg.remove();
+                    }
+                });
+            }
+        }
+        
+        function startReconnectTimer() {
+            // Check connection every 30 seconds
+            reconnectInterval = setInterval(() => {
+                if (!isConnected) {
+                    checkConnection();
+                }
+            }, 30000);
+        }
+        
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || isLoading) return;
+            
+            if (!isConnected) {
+                showSystemMessage('Cannot send message. Please wait for the connection to be established or configure the API URL.', 'error');
+                return;
+            }
+            
+            // Clear input and set loading state
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            setLoading(true);
+            
+            // Add user message
+            addMessage(message, 'user');
+            
+            // Show typing indicator
+            const typingId = showTypingIndicator();
+            
+            try {
+                const response = await fetch(`${apiUrl}/ask`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'omit',
+                    body: JSON.stringify({ query: message })
+                });
+                
+                hideTypingIndicator(typingId);
+                
+                if (!response.ok) {
+                    throw new Error(`Server responded with ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addMessage(data.answer, 'assistant', data.citations);
+                
+            } catch (error) {
+                hideTypingIndicator(typingId);
+                console.error('Send message error:', error);
+                
+                let errorMessage = 'Sorry, I encountered an error processing your request.';
+                if (error.message.includes('fetch')) {
+                    errorMessage = 'Network error. Please check your connection.';
+                    setConnectionStatus(false);
+                } else if (error.message.includes('500')) {
+                    errorMessage = 'Server error. Please try again later.';
+                } else if (error.message.includes('CORS')) {
+                    errorMessage = 'CORS error. Please check the API configuration.';
+                }
+                
+                showSystemMessage(errorMessage, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        function setLoading(loading) {
+            isLoading = loading;
+            sendButton.disabled = loading;
+            messageInput.disabled = loading;
+            
+            if (loading) {
+                sendButtonText.innerHTML = '<div class="spinner"></div>';
+            } else {
+                sendButtonText.textContent = 'Send';
+                messageInput.focus();
+            }
+        }
+        
+        function addMessage(content, type, citations = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = `message-wrapper ${type}`;
+            
+            // Add avatar
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'message-avatar';
+            avatarDiv.textContent = type === 'user' ? 'U' : 'A';
+            wrapperDiv.appendChild(avatarDiv);
+            
+            // Add content
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            // Add citations if present
+            if (citations && citations.length > 0) {
+                const citationsDiv = document.createElement('div');
+                citationsDiv.className = 'citations';
+                
+                const citationsHeader = document.createElement('div');
+                citationsHeader.className = 'citations-header';
+                citationsHeader.textContent = 'Sources:';
+                citationsDiv.appendChild(citationsHeader);
+                
+                citations.forEach(citation => {
+                    const citationItem = document.createElement('div');
+                    citationItem.className = 'citation-item';
+                    
+                    const title = document.createElement('div');
+                    title.className = 'citation-title';
+                    title.textContent = citation.title;
+                    if (citation.page) {
+                        title.textContent += `, Page ${citation.page}`;
+                    }
+                    if (citation.score) {
+                        title.textContent += ` (${(citation.score * 100).toFixed(1)}% match)`;
+                    }
+                    citationItem.appendChild(title);
+                    
+                    if (citation.url) {
+                        const link = document.createElement('a');
+                        link.className = 'citation-link';
+                        link.href = citation.url;
+                        link.target = '_blank';
+                        link.textContent = 'View in Paperless →';
+                        citationItem.appendChild(link);
+                    }
+                    
+                    citationsDiv.appendChild(citationItem);
+                });
+                
+                contentDiv.appendChild(citationsDiv);
+            }
+            
+            wrapperDiv.appendChild(contentDiv);
+            messageDiv.appendChild(wrapperDiv);
+            messagesContainer.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function showSystemMessage(content, type = 'system') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = `message-wrapper ${type}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            wrapperDiv.appendChild(contentDiv);
+            messageDiv.appendChild(wrapperDiv);
+            messagesContainer.appendChild(messageDiv);
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            const id = 'typing-' + Date.now();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.id = id;
+            
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = 'message-wrapper assistant';
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'message-avatar';
+            avatarDiv.textContent = 'A';
+            wrapperDiv.appendChild(avatarDiv);
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <span>Thinking</span>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            
+            contentDiv.appendChild(typingDiv);
+            wrapperDiv.appendChild(contentDiv);
+            messageDiv.appendChild(wrapperDiv);
+            messagesContainer.appendChild(messageDiv);
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            return id;
+        }
+        
+        function hideTypingIndicator(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.remove();
+            }
+        }
+        
+        // Handle modal close on background click
+        configModal.addEventListener('click', (e) => {
+            if (e.target === configModal) {
+                closeConfigModal();
+            }
+        });
+        
+        // Handle Enter key in modal
+        apiUrlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                saveApiUrl();
+            }
+        });
+    </script>
+</body>
+</html>

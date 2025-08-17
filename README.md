@@ -97,15 +97,22 @@ Choose between two UI options:
 #### Option A: Clean Chat UI (Recommended)
 
 ```bash
-python3 serve_chat.py
+python3 serve_clean_chat.py
 ```
 
 This provides:
-- ✅ Professional, error-free chat interface
-- ✅ Automatic API connection detection
-- ✅ Robust error handling and retry logic
+- ✅ Professional, reliable chat interface
+- ✅ Manual API URL configuration
+- ✅ Robust CORS handling
+- ✅ Clear connection status indicators
 - ✅ Mobile-responsive design
 - ✅ Starts on http://localhost:8080
+
+**Features:**
+- Click on the API URL in the header to change it
+- Automatic reconnection attempts
+- Clear error messages for troubleshooting
+- No CORS issues with proper server configuration
 
 #### Option B: Full-Featured UI
 

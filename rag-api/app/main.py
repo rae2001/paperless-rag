@@ -93,12 +93,18 @@ cors_origins = settings.ALLOWED_ORIGINS
 if isinstance(cors_origins, str):
     cors_origins = [origin.strip() for origin in cors_origins.split(',')]
 
+# For development, allow all origins if "*" is in the list
+if "*" in cors_origins:
+    cors_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 
