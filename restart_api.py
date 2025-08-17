@@ -49,8 +49,8 @@ def run_cmd(cmd, need_sudo=False):
 
 
 def main():
-    print("🔄 Quick Restart RAG API")
-    print("=" * 30)
+    print("🔄 Quick Restart RAG API (with ingestion fixes)")
+    print("=" * 45)
     
     compose_cmd = detect_docker_compose()
     if not compose_cmd:

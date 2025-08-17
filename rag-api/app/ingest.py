@@ -228,16 +228,16 @@ async def ingest_document(
             # Split page text into chunks
             text_chunks = chunk_text(page_text)
             
-            for chunk_text in text_chunks:
+            for text_chunk in text_chunks:
                 chunk_metadata = {
-                    "text": chunk_text,
+                    "text": text_chunk,
                     "doc_id": doc_id,
                     "title": title,
                     "page": page_num,
                     "file_type": file_type,
                     "tags": tags,
                     "ingested_at": datetime.utcnow().isoformat(),
-                    "token_count": count_tokens(chunk_text)
+                    "token_count": count_tokens(text_chunk)
                 }
                 all_chunks.append(chunk_metadata)
         
