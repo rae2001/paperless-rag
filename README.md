@@ -5,7 +5,7 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 ## Features
 
 - 🔍 **Natural Language Q&A**: Ask questions about your documents in plain English
-- 🖥️ **Beautiful Web UI**: OpenWebUI integration for professional chat interface
+- 🖥️ **Beautiful Web UI**: Modern chat interface with real-time system monitoring
 - 📚 **Multiple File Types**: Supports PDF, DOCX, and TXT files
 - 🌍 **Multilingual**: Uses BAAI/bge-m3 embeddings supporting 100+ languages
 - 🏠 **Privacy-First**: All document processing happens locally, only queries go to LLM
@@ -34,7 +34,6 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 - Running paperless-ngx instance
 - OpenRouter API key ([get one here](https://openrouter.ai/))
 - Paperless-ngx API token
-- sudo access (if required for Docker on your system)
 
 ### 1. Clone and Setup
 
@@ -42,11 +41,8 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 git clone <this-repo>
 cd paperless-rag
 
-# Single command setup
-python setup.py
-
-# Verify everything works
-python test_setup.py
+# Copy environment template
+cp env.example .env
 ```
 
 ### 2. Configure Environment
