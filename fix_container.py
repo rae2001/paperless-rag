@@ -221,7 +221,7 @@ def main():
     
     print("\n🎉 Container fixed and running!")
     print("\nNext steps:")
-    print("1. Test with: python test_api.py")
+    print("1. Test with: python3 test_api.py")
     print("2. Ingest documents: curl -X POST http://localhost:8088/ingest -H 'Content-Type: application/json' -d '{}'")
     print("3. Ask questions: curl -X POST http://localhost:8088/ask -H 'Content-Type: application/json' -d '{\"query\": \"test\"}'")
     

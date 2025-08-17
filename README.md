@@ -233,6 +233,10 @@ curl http://localhost:8088/health
 - Process fewer documents at once
 - Use CPU-optimized embedding model
 
+**Torch Security Error (CVE-2025-32434):**
+- The requirements.txt includes `torch>=2.6.0` for security
+- If you see torch loading errors, rebuild: `python3 quick_rebuild.py`
+
 ### Logs
 
 View application logs:

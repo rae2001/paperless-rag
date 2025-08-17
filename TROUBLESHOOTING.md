@@ -1,8 +1,20 @@
 # Troubleshooting Guide
 
-## Container Not Starting with "PAPERLESS_URL environment variable is required"
+## Common Startup Issues
+
+### Container Not Starting with "PAPERLESS_URL environment variable is required"
 
 This error indicates that the wrong application is running in the container. Here's how to fix it:
+
+### Torch Security Vulnerability Error
+
+If you see this error:
+```
+ValueError: Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6
+```
+
+**Problem**: The torch version is too old for the security requirements.
+**Solution**: The requirements.txt has been updated to `torch>=2.6.0`. Rebuild the container.
 
 ### Problem
 The error shows:

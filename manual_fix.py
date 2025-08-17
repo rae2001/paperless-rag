@@ -100,6 +100,10 @@ def main():
         print("\n⚠️  Don't forget to create .env file first:")
         print("python3 create_env.py")
         print("# Then edit with your actual tokens")
+    
+    print("\n🔧 If you're getting torch security errors:")
+    print("# The requirements.txt has been updated to torch>=2.6.0")
+    print("# Just rebuild: python3 quick_rebuild.py")
 
 
 if __name__ == "__main__":
