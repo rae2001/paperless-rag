@@ -119,7 +119,7 @@ def main():
         sys.exit(1)
     
     # Wait for OpenWebUI to start
-    if not wait_for_service("http://192.168.1.77:3000", "OpenWebUI"):
+    if not wait_for_service("http://192.168.1.77:3001", "OpenWebUI"):
         print("❌ OpenWebUI failed to start")
         sys.exit(1)
     
@@ -128,12 +128,12 @@ def main():
     
     print("\n🎉 OpenWebUI Setup Complete!")
     print("=" * 50)
-    print(f"🌐 OpenWebUI: http://192.168.1.77:3000")
+    print(f"🌐 OpenWebUI: http://192.168.1.77:3001")
     print(f"🔗 RAG API: http://192.168.1.77:8088")
     print(f"📄 Paperless: http://192.168.1.77:8000")
     print("")
     print("📋 Next Steps:")
-    print("1. Open http://192.168.1.77:3000 in your browser")
+    print("1. Open http://192.168.1.77:3001 in your browser")
     print("2. Create an admin account")
     print("3. Go to Settings > Models")
     print("4. Add OpenAI-Compatible API:")
