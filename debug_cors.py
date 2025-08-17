@@ -64,7 +64,7 @@ def check_docker_status():
     print("\n" + "=" * 50)
     print("Docker Container Status:")
     try:
-        result = subprocess.run(['docker', 'compose', 'ps'], 
+        result = subprocess.run(['sudo', 'docker', 'compose', 'ps'], 
                               capture_output=True, text=True)
         print(result.stdout)
     except Exception as e:
@@ -83,14 +83,14 @@ def main():
     
     if not api_working:
         print("1. Restart the API with updated CORS settings:")
-        print("   docker compose down")
-        print("   docker compose up --build -d")
+        print("   sudo docker compose down")
+        print("   sudo docker compose up --build -d")
         print()
         print("2. Check if the API container is running:")
-        print("   docker compose ps")
+        print("   sudo docker compose ps")
         print()
         print("3. Check API logs for errors:")
-        print("   docker compose logs rag-api")
+        print("   sudo docker compose logs rag-api")
     else:
         print("✓ API is accessible!")
         print()

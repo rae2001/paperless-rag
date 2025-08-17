@@ -11,17 +11,17 @@ fi
 
 # Step 1: Stop the current containers
 echo "1. Stopping current containers..."
-docker compose down
+sudo docker compose down
 
 # Step 2: Rebuild with new CORS settings
 echo ""
 echo "2. Rebuilding API with updated CORS configuration..."
-docker compose build rag-api --no-cache
+sudo docker compose build rag-api --no-cache
 
 # Step 3: Start containers
 echo ""
 echo "3. Starting containers..."
-docker compose up -d
+sudo docker compose up -d
 
 # Step 4: Wait for API to be ready
 echo ""
