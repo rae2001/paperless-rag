@@ -495,6 +495,7 @@
         let isConnected = false;
         let isLoading = false;
         let reconnectInterval = null;
+        let chatHistory = [];
         
         // DOM Elements
         const messagesContainer = document.getElementById('messagesContainer');
@@ -637,6 +638,7 @@
             
             // Add user message
             addMessage(message, 'user');
+            chatHistory.push({ role: 'user', content: message });
             
             // Show typing indicator
             const typingId = showTypingIndicator();
@@ -649,7 +651,11 @@
                         'Accept': 'application/json',
                     },
                     credentials: 'omit',
-                    body: JSON.stringify({ query: message })
+                    body: JSON.stringify({
+                        query: message,
+                        history: chatHistory.slice(-12),
+                        allow_general_chat: true
+                    })
                 });
                 
                 hideTypingIndicator(typingId);
@@ -660,6 +666,7 @@
                 
                 const data = await response.json();
                 addMessage(data.answer, 'assistant', data.citations);
+                chatHistory.push({ role: 'assistant', content: data.answer });
                 
             } catch (error) {
                 hideTypingIndicator(typingId);

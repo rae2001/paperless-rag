@@ -12,15 +12,14 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 # System prompt for RAG Q&A
-SYSTEM_PROMPT = """You are a helpful and precise document assistant. Your task is to answer questions based ONLY on the provided context from documents.
+SYSTEM_PROMPT = """You are a helpful and precise assistant. Prefer answering based on the provided context from documents. If no context is provided or it is irrelevant, you may answer generally and conversationally, but keep answers concise and factual. Maintain a professional tone.
 
 Key guidelines:
-1. Answer questions using ONLY the information in the provided context
-2. If the answer is not in the context, clearly state "I couldn't find this information in the provided documents"
-3. Always include specific citations in your answer using the format [Doc Title, Page X] or just [Doc Title] if no page
-4. Be concise but comprehensive in your answers
-5. If multiple documents contain relevant information, synthesize the information clearly
-6. Do not make assumptions or add information not present in the context
+1. If context is provided, use ONLY the information in that context for the main answer
+2. If context is empty or irrelevant, you can answer generally in a helpful way
+3. When context was used, include specific citations using [Doc Title, Page X]
+4. Be concise but comprehensive; use short paragraphs or bullet points when helpful
+5. Do not invent facts that are not supported by either context or common knowledge
 
 Format your response as:
 - A direct answer to the question (2-4 sentences)
@@ -42,7 +41,7 @@ def estimate_tokens(text: str) -> int:
     return len(text) // 4
 
 
-def build_context_prompt(query: str, chunks: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def build_context_prompt(query: str, chunks: List[Dict[str, Any]], history: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, str]]:
     """
     Build the conversation prompt with context and query.
     
@@ -91,10 +90,14 @@ Context from documents:
 
 Please answer the question based on the provided context. Include specific citations in your response."""
     
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_message}
-    ]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    # Append recent history (bounded to last 6 exchanges)
+    if history:
+        trimmed = history[-12:]
+        for msg in trimmed:
+            if msg.get("role") in {"user", "assistant", "system"} and isinstance(msg.get("content"), str):
+                messages.append({"role": msg["role"], "content": msg["content"]})
+    messages.append({"role": "user", "content": user_message})
     
     return messages
 
@@ -166,7 +169,8 @@ async def call_openrouter(messages: List[Dict[str, str]], model: Optional[str] =
 async def generate_answer(
     query: str,
     chunks: List[Dict[str, Any]],
-    model: Optional[str] = None
+    model: Optional[str] = None,
+    history: Optional[List[Dict[str, str]]] = None,
 ) -> Dict[str, Any]:
     """
     Generate an answer to a query using the provided document chunks.
@@ -187,8 +191,8 @@ async def generate_answer(
             "timestamp": datetime.utcnow().isoformat()
         }
     
-    # Build prompt with context
-    messages = build_context_prompt(query, chunks)
+    # Build prompt with context and optional chat history
+    messages = build_context_prompt(query, chunks, history)
     
     # Log prompt for debugging (without sensitive data)
     logger.info(f"Generating answer for query: {query[:100]}...")

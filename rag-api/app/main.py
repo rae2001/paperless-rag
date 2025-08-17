@@ -202,7 +202,17 @@ async def ask_question(
             filter_tags=request.filter_tags
         )
         
-        if not chunks:
+        # If no chunks found and general chat is allowed, fall back to non-RAG response
+        if not chunks and request.allow_general_chat:
+            logger.info("No RAG context found; falling back to general chat mode")
+            llm_result = await generate_answer(request.query, [], history=request.history)
+            return AskResponse(
+                answer=llm_result["answer"],
+                citations=[],
+                query=request.query,
+                model_used=llm_result["model"]
+            )
+        elif not chunks:
             logger.warning("No relevant chunks found for query")
             return AskResponse(
                 answer="I couldn't find any relevant information in the documents to answer your question.",
@@ -215,7 +225,7 @@ async def ask_question(
         chunks = deduplicate_chunks(chunks)
         
         # Generate answer using LLM
-        llm_result = await generate_answer(request.query, chunks)
+        llm_result = await generate_answer(request.query, chunks, history=request.history)
         
         # Build citations
         citations = []
@@ -276,16 +286,17 @@ async def ingest_documents(
                     detail=f"Failed to ingest document {request.doc_id}: {result.get('error', 'Unknown error')}"
                 )
         else:
-            # Ingest all documents (background task)
+            # Ingest all or recently updated documents (background task)
             background_tasks.add_task(
                 ingest_all_documents_background,
                 qdrant,
                 embedder,
-                request.force_reindex
+                request.force_reindex,
+                request.updated_after
             )
             
             return IngestResponse(
-                message="Started background ingestion of all documents",
+                message="Started background ingestion of documents",
                 documents_processed=0,
                 chunks_created=0
             )
@@ -298,14 +309,15 @@ async def ingest_documents(
 async def ingest_all_documents_background(
     qdrant: QdrantClient,
     embedder: SentenceTransformer,
-    force_reindex: bool = False
+    force_reindex: bool = False,
+    updated_after: Optional[str] = None
 ):
     """Background task to ingest all documents."""
     logger.info("Starting background ingestion of all documents")
     
     try:
         # Get list of documents from paperless
-        docs_response = await list_documents()
+        docs_response = await list_documents(updated_after=updated_after)
         documents = docs_response.get("results", [])
         
         total_docs = len(documents)

@@ -9,6 +9,14 @@ class AskRequest(BaseModel):
     query: str = Field(..., description="The question to ask about the documents")
     filter_tags: Optional[List[str]] = Field(None, description="Optional list of paperless tags to filter by")
     top_k: Optional[int] = Field(None, description="Number of top results to retrieve (overrides default)")
+    history: Optional[List[dict]] = Field(
+        default=None,
+        description="Optional recent chat history as a list of {role, content}"
+    )
+    allow_general_chat: bool = Field(
+        default=True,
+        description="If true, allow a general (non-RAG) answer when no relevant documents are found"
+    )
 
 
 class Citation(BaseModel):
@@ -33,6 +41,10 @@ class IngestRequest(BaseModel):
     """Request model for the /ingest endpoint."""
     doc_id: Optional[int] = Field(None, description="Specific document ID to ingest")
     force_reindex: bool = Field(False, description="Force reindexing even if document already exists")
+    updated_after: Optional[str] = Field(
+        None,
+        description="ISO timestamp to ingest only documents modified after this time"
+    )
 
 
 class IngestResponse(BaseModel):
