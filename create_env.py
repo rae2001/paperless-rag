@@ -53,7 +53,8 @@ LOG_LEVEL=INFO
         print("\n⚠️  IMPORTANT: Edit .env file with your actual credentials:")
         print("   - PAPERLESS_API_TOKEN: Get from http://192.168.1.77:8000/admin/authtoken/tokenproxy/")
         print("   - OPENROUTER_API_KEY: Get from https://openrouter.ai/")
-        print("\nAfter editing .env, run: python fix_container.py")
+        print("\nAfter editing .env, run: python3 fix_container.py")
+        print("Or for manual commands: python3 manual_fix.py")
         
         return True
         
