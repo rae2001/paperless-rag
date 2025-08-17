@@ -663,6 +663,14 @@
                 return;
             }
             
+            // Check if user is asking for a specific document
+            const docPattern = /(?:show|open|display|find)\s+(?:the\s+)?(?:document|file|doc)\s+(?:about\s+|named\s+|called\s+)?(.+)/i;
+            const match = message.match(docPattern);
+            if (match) {
+                searchAndShowDocument(match[1].trim());
+                return;
+            }
+            
             // Clear input and set loading state
             messageInput.value = '';
             messageInput.style.height = 'auto';
@@ -949,6 +957,63 @@
                 saveApiUrl();
             }
         });
+        
+        async function searchAndShowDocument(query) {
+            setLoading(true);
+            addMessage(`Looking for document: "${query}"`, 'user');
+            
+            try {
+                const response = await fetch(`${apiUrl}/documents/search?q=${encodeURIComponent(query)}&limit=5`);
+                if (!response.ok) throw new Error('Search failed');
+                
+                const docs = await response.json();
+                
+                if (docs.length === 0) {
+                    showSystemMessage(`No documents found matching "${query}"`, 'error');
+                } else if (docs.length === 1) {
+                    // Single match - show direct link
+                    const doc = docs[0];
+                    const messageHtml = `Found: <strong>${escapeHtml(doc.title)}</strong><br><br>
+                        <a href="${doc.url}" target="_blank" style="display: inline-block; padding: 0.5rem 1rem; background: var(--primary); color: white; text-decoration: none; border-radius: 6px;">Open Document →</a>`;
+                    addRichMessage(messageHtml, 'assistant');
+                } else {
+                    // Multiple matches - show list
+                    let messageHtml = `Found ${docs.length} matching documents:<br><br>`;
+                    docs.forEach(doc => {
+                        messageHtml += `• <a href="${doc.url}" target="_blank" style="color: var(--primary); text-decoration: none;">${escapeHtml(doc.title)}</a><br>`;
+                    });
+                    addRichMessage(messageHtml, 'assistant');
+                }
+            } catch (error) {
+                console.error('Document search error:', error);
+                showSystemMessage('Failed to search documents', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        function addRichMessage(htmlContent, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = `message-wrapper ${type}`;
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'message-avatar';
+            avatarDiv.textContent = type === 'user' ? 'U' : 'A';
+            wrapperDiv.appendChild(avatarDiv);
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = htmlContent;
+            
+            wrapperDiv.appendChild(contentDiv);
+            messageDiv.appendChild(wrapperDiv);
+            messagesContainer.appendChild(messageDiv);
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
     </script>
 </body>
 </html>

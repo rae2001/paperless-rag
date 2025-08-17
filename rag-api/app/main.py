@@ -192,13 +192,15 @@ async def ask_question(
     logger.info(f"Received question: {request.query[:100]}...")
     
     try:
-        # Search for relevant chunks
+        # Search for relevant chunks - increase top_k for better coverage
         top_k = request.top_k or settings.RAG_TOP_K
+        # Double the search results to ensure we get comprehensive coverage
+        search_k = top_k * 2 if top_k < 20 else top_k
         chunks = search_similar_chunks(
             qdrant_client=qdrant,
             embedding_model=embedder,
             query=request.query,
-            top_k=top_k,
+            top_k=search_k,
             filter_tags=request.filter_tags
         )
         
@@ -350,6 +352,39 @@ async def ingest_all_documents_background(
     except Exception as e:
         logger.error(f"Background ingestion failed: {e}")
 
+
+@app.get("/documents/search")
+async def search_documents(
+    q: str,
+    limit: int = 10
+):
+    """Search for documents by title."""
+    try:
+        docs_response = await list_documents()
+        documents = docs_response.get("results", [])
+        
+        # Simple title search
+        query_lower = q.lower()
+        matching_docs = []
+        for doc in documents:
+            if query_lower in doc.get("title", "").lower():
+                matching_docs.append({
+                    "id": doc["id"],
+                    "title": doc["title"],
+                    "url": build_document_url(doc["id"])
+                })
+        
+        # Sort by relevance (exact match first)
+        matching_docs.sort(key=lambda x: (
+            not x["title"].lower().startswith(query_lower),
+            x["title"].lower()
+        ))
+        
+        return matching_docs[:limit]
+        
+    except Exception as e:
+        logger.error(f"Error searching documents: {e}")
+        raise HTTPException(status_code=500, detail=f"Error searching documents: {str(e)}")
 
 @app.get("/documents", response_model=List[DocumentInfo])
 async def list_paperless_documents(
