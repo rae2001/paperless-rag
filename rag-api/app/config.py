@@ -3,7 +3,8 @@
 import os
 from functools import lru_cache
 from typing import List
-from pydantic import BaseSettings, validator
+from pydantic_settings import BaseSettings
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -37,21 +38,25 @@ class Settings(BaseSettings):
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     
-    @validator('ALLOWED_ORIGINS')
+    @field_validator('ALLOWED_ORIGINS')
+    @classmethod
     def parse_allowed_origins(cls, v):
         """Parse comma-separated origins into a list."""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(',')]
         return v
     
-    @validator('PAPERLESS_BASE_URL')
+    @field_validator('PAPERLESS_BASE_URL')
+    @classmethod
     def validate_paperless_url(cls, v):
         """Ensure paperless URL doesn't end with slash."""
         return v.rstrip('/')
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True,
+        "extra": "ignore"
+    }
 
 
 @lru_cache()
