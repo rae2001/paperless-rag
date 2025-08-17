@@ -11,20 +11,26 @@ from .config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# System prompt for RAG Q&A
-SYSTEM_PROMPT = """You are a helpful and precise document assistant. Your task is to answer questions based ONLY on the provided context from documents.
+# System prompt for enhanced conversational RAG
+SYSTEM_PROMPT = """You are a helpful AI assistant with access to a knowledge base of documents. You can have normal conversations while being enhanced by relevant document information when available.
 
-Key guidelines:
-1. Answer questions using ONLY the information in the provided context
-2. If the answer is not in the context, clearly state "I couldn't find this information in the provided documents"
-3. Always include specific citations in your answer using the format [Doc Title, Page X] or just [Doc Title] if no page
-4. Be concise but comprehensive in your answers
-5. If multiple documents contain relevant information, synthesize the information clearly
-6. Do not make assumptions or add information not present in the context
+**Core Behavior:**
+- Have natural, helpful conversations on any topic
+- When document context is provided, integrate it naturally into your response
+- Be conversational, friendly, and informative
+- Use your general knowledge for topics not covered in documents
 
-Format your response as:
-- A direct answer to the question (2-4 sentences)
-- A "Sources:" section listing the relevant citations
+**When Document Context is Available:**
+- Seamlessly weave document information into your response
+- Cite sources naturally: "According to [Document Name], ..." or "Based on your documents, ..."
+- If documents contradict general knowledge, prioritize the document information
+- Mention when information comes from the user's specific documents
+
+**Response Style:**
+- Be conversational and natural (not robotic)
+- Provide helpful, detailed responses
+- Use document information to give personalized, specific answers
+- For greetings and casual conversation, respond normally without requiring documents
 """
 
 
@@ -53,49 +59,53 @@ def build_context_prompt(query: str, chunks: List[Dict[str, Any]]) -> List[Dict[
     Returns:
         List of message dictionaries for the LLM
     """
-    # Build context from chunks
-    context_parts = []
-    total_tokens = 0
-    max_tokens = settings.MAX_SNIPPETS_TOKENS
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     
-    for i, chunk in enumerate(chunks, 1):
-        title = chunk.get("title", "Unknown Document")
-        page = chunk.get("page")
-        text = chunk.get("text", "")
+    # If we have relevant document chunks, include them
+    if chunks:
+        # Build context from chunks
+        context_parts = []
+        total_tokens = 0
+        max_tokens = settings.MAX_SNIPPETS_TOKENS
         
-        # Format citation
-        if page:
-            citation = f"{title}, Page {page}"
-        else:
-            citation = title
+        for i, chunk in enumerate(chunks, 1):
+            title = chunk.get("title", "Unknown Document")
+            page = chunk.get("page")
+            text = chunk.get("text", "")
+            
+            # Format citation
+            if page:
+                citation = f"{title}, Page {page}"
+            else:
+                citation = title
+            
+            # Build context entry
+            context_entry = f"[{i}] {citation}:\n{text}\n"
+            
+            # Check token limit
+            entry_tokens = estimate_tokens(context_entry)
+            if total_tokens + entry_tokens > max_tokens:
+                logger.warning(f"Reached token limit, truncating context at {i-1} chunks")
+                break
+            
+            context_parts.append(context_entry)
+            total_tokens += entry_tokens
         
-        # Build context entry
-        context_entry = f"[{i}] {citation}:\n{text}\n"
+        context = "\n".join(context_parts)
         
-        # Check token limit
-        entry_tokens = estimate_tokens(context_entry)
-        if total_tokens + entry_tokens > max_tokens:
-            logger.warning(f"Reached token limit, truncating context at {i-1} chunks")
-            break
-        
-        context_parts.append(context_entry)
-        total_tokens += entry_tokens
-    
-    context = "\n".join(context_parts)
-    
-    # Build user message
-    user_message = f"""Question: {query}
+        # Enhanced user message with context
+        user_message = f"""{query}
 
-Context from documents:
+Here's some relevant information from your documents that might help:
+
 {context}
 
-Please answer the question based on the provided context. Include specific citations in your response."""
+Please provide a natural, helpful response. Use the document information where relevant, but feel free to supplement with general knowledge as needed."""
+    else:
+        # Simple user message without context for casual conversation
+        user_message = query
     
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_message}
-    ]
-    
+    messages.append({"role": "user", "content": user_message})
     return messages
 
 

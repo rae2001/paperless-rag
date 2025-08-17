@@ -20,16 +20,33 @@ def check_streamlit_installed():
 def install_streamlit():
     """Install Streamlit requirements"""
     print("📦 Installing Streamlit requirements...")
-    try:
-        result = subprocess.run([
-            sys.executable, "-m", "pip", "install", "-r", "streamlit_requirements.txt"
-        ], check=True, capture_output=True, text=True)
-        print("✅ Streamlit installed successfully!")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to install Streamlit: {e}")
-        print(f"Error output: {e.stderr}")
-        return False
+    
+    # Try different installation methods
+    install_commands = [
+        # Method 1: pip module
+        [sys.executable, "-m", "pip", "install", "-r", "streamlit_requirements.txt"],
+        # Method 2: pip3 directly
+        ["pip3", "install", "-r", "streamlit_requirements.txt"],
+        # Method 3: pip directly
+        ["pip", "install", "-r", "streamlit_requirements.txt"],
+    ]
+    
+    for i, cmd in enumerate(install_commands, 1):
+        print(f"   Trying method {i}/{len(install_commands)}: {' '.join(cmd)}")
+        try:
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            print("✅ Streamlit installed successfully!")
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            print(f"   ❌ Method {i} failed: {e}")
+            continue
+    
+    print(f"❌ All installation methods failed.")
+    print(f"📋 Please install manually using one of these commands:")
+    print(f"   sudo apt install python3-streamlit python3-requests  # Ubuntu/Debian")
+    print(f"   sudo apt install python3-pip && pip3 install streamlit requests")
+    print(f"   conda install streamlit requests  # If you have conda")
+    return False
 
 def test_api_connection():
     """Test if API is accessible"""

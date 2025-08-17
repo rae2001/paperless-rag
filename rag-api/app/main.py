@@ -171,55 +171,81 @@ async def health_check(
     )
 
 
+def should_search_documents(query: str) -> bool:
+    """Determine if a query warrants searching documents."""
+    query_lower = query.lower().strip()
+    
+    # Simple greetings and casual conversation - no need to search
+    casual_patterns = [
+        "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
+        "how are you", "what's up", "thanks", "thank you", "bye", "goodbye",
+        "what can you do", "help", "who are you", "what are you"
+    ]
+    
+    # Check if query is just casual conversation
+    if any(pattern in query_lower for pattern in casual_patterns) and len(query.split()) <= 5:
+        return False
+    
+    # If query is very short and doesn't seem document-related
+    if len(query.split()) <= 2 and not any(word in query_lower for word in 
+        ["document", "report", "contract", "project", "what", "how", "when", "where", "why"]):
+        return False
+    
+    return True
+
+
 @app.post("/ask", response_model=AskResponse)
 async def ask_question(
     request: AskRequest,
     qdrant: QdrantClient = Depends(get_qdrant_client),
     embedder: SentenceTransformer = Depends(get_embedding_model)
 ):
-    """Ask a question about the documents."""
+    """Ask a question - enhanced conversational AI with document knowledge."""
     logger.info(f"Received question: {request.query[:100]}...")
     
     try:
-        # Search for relevant chunks
-        top_k = request.top_k or settings.RAG_TOP_K
-        chunks = search_similar_chunks(
-            qdrant_client=qdrant,
-            embedding_model=embedder,
-            query=request.query,
-            top_k=top_k,
-            filter_tags=request.filter_tags
-        )
+        chunks = []
+        citations = []
         
-        if not chunks:
-            logger.warning("No relevant chunks found for query")
-            return AskResponse(
-                answer="I couldn't find any relevant information in the documents to answer your question.",
-                citations=[],
+        # Only search documents if the query warrants it
+        if should_search_documents(request.query):
+            logger.info("Searching documents for relevant context")
+            
+            # Search for relevant chunks
+            top_k = request.top_k or settings.RAG_TOP_K
+            chunks = search_similar_chunks(
+                qdrant_client=qdrant,
+                embedding_model=embedder,
                 query=request.query,
-                model_used=settings.OPENROUTER_MODEL
+                top_k=top_k,
+                filter_tags=request.filter_tags
             )
+            
+            # Deduplicate similar chunks
+            if chunks:
+                chunks = deduplicate_chunks(chunks)
+                logger.info(f"Found {len(chunks)} relevant document chunks")
+                
+                # Build citations only if we have relevant chunks
+                for chunk in chunks:
+                    citation = Citation(
+                        doc_id=chunk["doc_id"],
+                        title=chunk["title"],
+                        page=chunk.get("page"),
+                        score=chunk["score"],
+                        url=build_document_url(chunk["doc_id"]),
+                        snippet=chunk["text"][:300] + "..." if len(chunk["text"]) > 300 else chunk["text"]
+                    )
+                    citations.append(citation)
+            else:
+                logger.info("No relevant document chunks found")
+        else:
+            logger.info("Casual conversation detected, skipping document search")
         
-        # Deduplicate similar chunks
-        chunks = deduplicate_chunks(chunks)
-        
-        # Generate answer using LLM
+        # Generate answer using LLM (with or without document context)
         llm_result = await generate_answer(request.query, chunks)
         
-        # Build citations
-        citations = []
-        for chunk in chunks:
-            citation = Citation(
-                doc_id=chunk["doc_id"],
-                title=chunk["title"],
-                page=chunk.get("page"),
-                score=chunk["score"],
-                url=build_document_url(chunk["doc_id"]),
-                snippet=chunk["text"][:300] + "..." if len(chunk["text"]) > 300 else chunk["text"]
-            )
-            citations.append(citation)
-        
-        logger.info(f"Generated answer with {len(citations)} citations")
+        logger.info(f"Generated conversational response with {len(citations)} citations")
         
         return AskResponse(
             answer=llm_result["answer"],
