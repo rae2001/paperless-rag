@@ -705,7 +705,9 @@
                 }
                 
                 const data = await response.json();
-                addMessage(data.answer, 'assistant', data.citations);
+                // Only show citations if the query was about documents
+                const showCitations = hasDocumentKeywords(message) && data.citations && data.citations.length > 0;
+                addMessage(data.answer, 'assistant', showCitations ? data.citations : null);
                 chatHistory.push({ role: 'assistant', content: data.answer });
                 
             } catch (error) {
@@ -809,6 +811,17 @@
         function escapeHtml(text) {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        function hasDocumentKeywords(query) {
+            const documentKeywords = [
+                'project', 'document', 'construction', 'methodology', 'procedure', 
+                'specification', 'requirement', 'helipad', 'warehouse', 'port',
+                'yanbu', 'kkmc', 'neom', 'progress', 'report', 'contract',
+                'personnel', 'team', 'engineer', 'safety', 'quality'
+            ];
+            const queryLower = query.toLowerCase();
+            return documentKeywords.some(keyword => queryLower.includes(keyword));
         }
 
         function addMessage(content, type, citations = null) {

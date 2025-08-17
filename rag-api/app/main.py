@@ -192,17 +192,31 @@ async def ask_question(
     logger.info(f"Received question: {request.query[:100]}...")
     
     try:
-        # Search for relevant chunks - increase top_k for better coverage
-        top_k = request.top_k or settings.RAG_TOP_K
-        # Double the search results to ensure we get comprehensive coverage
-        search_k = top_k * 2 if top_k < 20 else top_k
-        chunks = search_similar_chunks(
-            qdrant_client=qdrant,
-            embedding_model=embedder,
-            query=request.query,
-            top_k=search_k,
-            filter_tags=request.filter_tags
-        )
+        # Determine if this query needs document search
+        query_lower = request.query.lower()
+        document_keywords = [
+            'project', 'document', 'construction', 'methodology', 'procedure', 
+            'specification', 'requirement', 'helipad', 'warehouse', 'port',
+            'yanbu', 'kkmc', 'neom', 'progress', 'report', 'contract',
+            'personnel', 'team', 'engineer', 'safety', 'quality'
+        ]
+        
+        # Only search documents if query contains relevant keywords
+        needs_documents = any(keyword in query_lower for keyword in document_keywords)
+        
+        chunks = []
+        if needs_documents:
+            # Search for relevant chunks - increase top_k for better coverage
+            top_k = request.top_k or settings.RAG_TOP_K
+            # Double the search results to ensure we get comprehensive coverage
+            search_k = top_k * 2 if top_k < 20 else top_k
+            chunks = search_similar_chunks(
+                qdrant_client=qdrant,
+                embedding_model=embedder,
+                query=request.query,
+                top_k=search_k,
+                filter_tags=request.filter_tags
+            )
         
         # If no chunks found and general chat is allowed, fall back to non-RAG response
         if not chunks and request.allow_general_chat:
