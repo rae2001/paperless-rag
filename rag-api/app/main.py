@@ -87,7 +87,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS
+# Configure CORS - MUST be added immediately after app creation
 # Ensure ALLOWED_ORIGINS is a list
 cors_origins = settings.ALLOWED_ORIGINS
 if isinstance(cors_origins, str):
@@ -97,15 +97,31 @@ if isinstance(cors_origins, str):
 if "*" in cors_origins:
     cors_origins = ["*"]
 
+# Add CORS middleware with explicit configuration
+from starlette.middleware.cors import CORSMiddleware as StarletteCORS
+
 app.add_middleware(
-    CORSMiddleware,
+    StarletteCORS,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600,
 )
+
+# Add custom middleware to ensure CORS headers are always present
+@app.middleware("http")
+async def ensure_cors_headers(request, call_next):
+    response = await call_next(request)
+    # Add CORS headers if not already present
+    if "access-control-allow-origin" not in response.headers:
+        origin = request.headers.get("origin", "*")
+        response.headers["access-control-allow-origin"] = origin if origin in cors_origins or "*" in cors_origins else cors_origins[0]
+        response.headers["access-control-allow-credentials"] = "true"
+        response.headers["access-control-allow-methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD"
+        response.headers["access-control-allow-headers"] = "*"
+    return response
 
 
 # Dependency to get Qdrant client
@@ -434,19 +450,7 @@ async def root():
     }
 
 
-@app.options("/{path:path}")
-async def options_handler():
-    """Handle all OPTIONS requests for CORS preflight."""
-    return JSONResponse(
-        status_code=200,
-        content={"message": "OK"},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Max-Age": "3600",
-        }
-    )
+# OPTIONS handler removed - handled by CORS middleware
 
 @app.get("/cors-debug")
 async def cors_debug():
