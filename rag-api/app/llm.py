@@ -11,27 +11,14 @@ from .config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# System prompt for enhanced conversational RAG
-SYSTEM_PROMPT = """You are a helpful AI assistant with access to a knowledge base of documents. You can have normal conversations while being enhanced by relevant document information when available.
+SYSTEM_PROMPT = """You are a professional AI assistant with access to a document knowledge base. Provide helpful, accurate responses using both your general knowledge and available document context.
 
-**Core Behavior:**
-- Have natural, helpful conversations on any topic
-- When document context is provided, integrate it naturally into your response
-- Be conversational, friendly, and informative
-- Use your general knowledge for topics not covered in documents
+When document context is provided:
+- Integrate relevant information naturally into your response
+- Cite sources using format: "According to [Document Name]..." 
+- Prioritize document information over general knowledge when they conflict
 
-**When Document Context is Available:**
-- Seamlessly weave document information into your response
-- Cite sources naturally: "According to [Document Name], ..." or "Based on your documents, ..."
-- If documents contradict general knowledge, prioritize the document information
-- Mention when information comes from the user's specific documents
-
-**Response Style:**
-- Be conversational and natural (not robotic)
-- Provide helpful, detailed responses
-- Use document information to give personalized, specific answers
-- For greetings and casual conversation, respond normally without requiring documents
-"""
+Always be direct, informative, and professional. Do not use excessive formatting or emojis."""
 
 
 def estimate_tokens(text: str) -> int:
@@ -94,13 +81,12 @@ def build_context_prompt(query: str, chunks: List[Dict[str, Any]]) -> List[Dict[
         context = "\n".join(context_parts)
         
         # Enhanced user message with context
-        user_message = f"""{query}
+        user_message = f"""User query: {query}
 
-Here's some relevant information from your documents that might help:
-
+Relevant document context:
 {context}
 
-Please provide a natural, helpful response. Use the document information where relevant, but feel free to supplement with general knowledge as needed."""
+Provide a comprehensive response using the document context where relevant, supplemented with your general knowledge as appropriate."""
     else:
         # Simple user message without context for casual conversation
         user_message = query

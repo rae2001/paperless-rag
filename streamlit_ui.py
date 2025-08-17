@@ -11,8 +11,8 @@ import time
 
 # Configure Streamlit page
 st.set_page_config(
-    page_title="📚 Paperless RAG Q&A",
-    page_icon="📚",
+    page_title="Paperless Document Assistant",
+    page_icon="📄",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -66,104 +66,76 @@ if "api_healthy" not in st.session_state:
 
 # Sidebar with system info
 with st.sidebar:
-    st.header("🔧 System Status")
+    st.header("System Status")
     
     # API Health Check
     healthy, health_data = check_api_health()
     st.session_state.api_healthy = healthy
     
     if healthy:
-        st.success("✅ API Connected")
+        st.success("API Connected")
         
         # Show component status
         if isinstance(health_data, dict) and "components" in health_data:
             components = health_data["components"]
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Qdrant", "✅" if components.get("qdrant") == "healthy" else "❌")
-                st.metric("LLM", "✅" if components.get("llm") == "healthy" else "❌")
+            status_items = []
+            for component, status in components.items():
+                icon = "✓" if status == "healthy" else "✗"
+                status_items.append(f"{icon} {component.title()}")
             
-            with col2:
-                st.metric("Paperless", "✅" if components.get("paperless") == "healthy" else "❌")
-                st.metric("Embeddings", "✅" if components.get("embedding_model") == "healthy" else "❌")
+            st.text("\n".join(status_items))
     else:
-        st.error(f"❌ API Error: {health_data}")
+        st.error(f"API Error: {health_data}")
     
     st.divider()
     
     # System Stats
-    st.header("📊 Statistics")
+    st.header("Statistics")
     stats = get_stats()
     
     if stats:
-        col1, col2 = st.columns(2)
-        with col1:
-            docs_count = stats.get("paperless_documents", "Unknown")
-            st.metric("Documents", docs_count)
+        docs_count = stats.get("paperless_documents", "Unknown")
+        vector_stats = stats.get("vector_database", {})
+        chunks_count = vector_stats.get("points_count", "Unknown")
         
-        with col2:
-            vector_stats = stats.get("vector_database", {})
-            chunks_count = vector_stats.get("points_count", "Unknown")
-            st.metric("Text Chunks", chunks_count)
+        st.metric("Documents", docs_count)
+        st.metric("Text Chunks", chunks_count)
         
-        # Model info
-        st.info(f"🤖 **Model**: {stats.get('llm_model', 'Unknown')}")
-        st.info(f"🔗 **Embeddings**: {stats.get('embedding_model', 'Unknown')}")
+        st.caption(f"Model: {stats.get('llm_model', 'Unknown')}")
     else:
         st.warning("Unable to load stats")
     
     st.divider()
     
     # Quick Actions
-    st.header("💡 Quick Actions")
+    st.header("Quick Actions")
     
-    # Conversation starters
-    if st.button("👋 Start a conversation", use_container_width=True):
-        st.session_state.messages.append({"role": "user", "content": "Hi! What can you help me with?"})
-        st.rerun()
+    # Common queries
+    quick_questions = [
+        "What documents do I have?",
+        "Summarize my contracts",
+        "Show recent reports",
+        "List project requirements",
+        "Find safety protocols"
+    ]
     
-    # Document questions
-    with st.expander("📋 Document Questions"):
-        doc_questions = [
-            "What documents do I have?",
-            "Summarize my key contracts",
-            "What are the main topics in my documents?",
-            "Show me recent progress reports",
-            "What are the important deadlines mentioned?"
-        ]
-        
-        for question in doc_questions:
-            if st.button(question, key=f"doc_{hash(question)}", use_container_width=True):
-                st.session_state.messages.append({"role": "user", "content": question})
-                st.rerun()
+    for question in quick_questions:
+        if st.button(question, key=f"quick_{hash(question)}", use_container_width=True):
+            st.session_state.messages.append({"role": "user", "content": question})
+            st.rerun()
     
-    # Technical questions
-    with st.expander("🔧 Technical Questions"):
-        tech_questions = [
-            "What welding procedures are documented?",
-            "What quality requirements are mentioned?",
-            "Are there any safety protocols?",
-            "What materials are specified?",
-            "What are the technical specifications?"
-        ]
-        
-        for question in tech_questions:
-            if st.button(question, key=f"tech_{hash(question)}", use_container_width=True):
-                st.session_state.messages.append({"role": "user", "content": question})
-                st.rerun()
-    
-    if st.button("🗑️ Clear Chat", use_container_width=True):
+    if st.button("Clear Chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
 # Main chat interface
-st.title("📚 Paperless RAG Q&A")
-st.caption("💬 Chat naturally with AI enhanced by your document knowledge")
+st.title("Document Assistant")
+st.caption("AI-powered assistant with access to your document knowledge base")
 
 # Check API status before allowing chat
 if not st.session_state.api_healthy:
-    st.error("🚫 **API is not available**. Please check your connection and try again.")
+    st.error("API is not available. Please check your connection and try again.")
     st.stop()
 
 # Display chat messages
@@ -198,7 +170,7 @@ for message in st.session_state.messages:
                                 st.link_button("View in Paperless", citation["url"])
 
 # Chat input
-if prompt := st.chat_input("Ask me anything... I'm enhanced with your document knowledge!"):
+if prompt := st.chat_input("Ask questions about your documents or general topics..."):
     # Add user message to chat
     st.session_state.messages.append({"role": "user", "content": prompt})
     
@@ -209,7 +181,7 @@ if prompt := st.chat_input("Ask me anything... I'm enhanced with your document k
     # Get AI response
     with st.chat_message("assistant"):
         # Show different spinner messages based on query type
-        spinner_text = "🤖 Thinking..." if len(prompt.split()) <= 3 else "🔍 Analyzing your documents and thinking..."
+        spinner_text = "Processing..." if len(prompt.split()) <= 3 else "Searching documents and generating response..."
         
         with st.spinner(spinner_text):
             success, result = ask_question(prompt)
@@ -231,43 +203,35 @@ if prompt := st.chat_input("Ask me anything... I'm enhanced with your document k
                 citations = result.get("citations", [])
                 if citations:
                     st.markdown("---")
-                    st.markdown("**📎 Sources from your documents:**")
+                    st.markdown("**Sources:**")
                     
-                    for i, citation in enumerate(citations, 1):
-                        with st.expander(f"📄 {citation.get('title', 'Unknown Document')} (Relevance: {citation.get('score', 0)*100:.1f}%)"):
-                            col1, col2 = st.columns([3, 1])
+                    for citation in citations:
+                        relevance = citation.get('score', 0) * 100
+                        title = citation.get('title', 'Unknown Document')
+                        
+                        with st.expander(f"{title} (Relevance: {relevance:.0f}%)"):
+                            if citation.get("page"):
+                                st.write(f"Page: {citation['page']}")
                             
-                            with col1:
-                                if citation.get("page"):
-                                    st.markdown(f"**Page:** {citation['page']}")
-                                
-                                if citation.get("snippet"):
-                                    st.markdown(f"**Excerpt:** _{citation['snippet'][:250]}..._")
+                            if citation.get("snippet"):
+                                st.write(f"Excerpt: {citation['snippet'][:200]}...")
                             
-                            with col2:
-                                if citation.get("url"):
-                                    st.link_button("📖 View in Paperless", citation["url"])
+                            if citation.get("url"):
+                                st.link_button("View Document", citation["url"])
                 else:
-                    # Show when no documents were referenced
-                    if len(prompt.split()) > 3:  # For longer queries that might have searched
-                        st.caption("💭 _Response based on general knowledge - no specific documents referenced_")
+                    # Show when no documents were referenced for longer queries
+                    if len(prompt.split()) > 3:
+                        st.caption("Response based on general knowledge")
                 
-                # Show model used (less prominently)
+                # Show model used
                 model_used = result.get("model_used", "Unknown")
-                st.caption(f"_Model: {model_used}_")
+                st.caption(f"Model: {model_used}")
                 
             else:
-                error_msg = f"❌ **Error**: {result}"
+                error_msg = f"Error: {result}"
                 st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
 # Footer
 st.markdown("---")
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.markdown("*Powered by Paperless-ngx, Qdrant, and OpenRouter*")
-
-# Auto-refresh stats every 30 seconds (if enabled)
-if st.sidebar.checkbox("Auto-refresh stats", value=False):
-    time.sleep(30)
-    st.rerun()
+st.caption("Powered by Paperless-ngx, Qdrant, and OpenRouter")

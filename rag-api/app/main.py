@@ -172,26 +172,32 @@ async def health_check(
 
 
 def should_search_documents(query: str) -> bool:
-    """Determine if a query warrants searching documents."""
+    """Determine if a query warrants searching documents based on intent analysis."""
     query_lower = query.lower().strip()
     
-    # Simple greetings and casual conversation - no need to search
-    casual_patterns = [
-        "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
-        "how are you", "what's up", "thanks", "thank you", "bye", "goodbye",
-        "what can you do", "help", "who are you", "what are you"
+    # Don't search for simple greetings or system questions
+    if len(query.split()) <= 3:
+        casual_indicators = ["hi", "hello", "hey", "thanks", "bye", "how are you", "what can you do"]
+        if any(indicator in query_lower for indicator in casual_indicators):
+            return False
+    
+    # Always search for explicit document/content queries
+    document_indicators = [
+        "document", "file", "report", "contract", "procedure", "specification",
+        "my documents", "show me", "find", "search", "what do i have",
+        "according to", "based on", "in my files"
     ]
     
-    # Check if query is just casual conversation
-    if any(pattern in query_lower for pattern in casual_patterns) and len(query.split()) <= 5:
-        return False
+    if any(indicator in query_lower for indicator in document_indicators):
+        return True
     
-    # If query is very short and doesn't seem document-related
-    if len(query.split()) <= 2 and not any(word in query_lower for word in 
-        ["document", "report", "contract", "project", "what", "how", "when", "where", "why"]):
-        return False
+    # Search for question words that likely reference content
+    question_indicators = ["what", "how", "when", "where", "why", "which", "who"]
+    if any(word in query_lower for word in question_indicators) and len(query.split()) > 2:
+        return True
     
-    return True
+    # For other queries longer than 4 words, search documents
+    return len(query.split()) > 4
 
 
 @app.post("/ask", response_model=AskResponse)
@@ -221,22 +227,30 @@ async def ask_question(
                 filter_tags=request.filter_tags
             )
             
-            # Deduplicate similar chunks
+            # Filter by similarity threshold and deduplicate
             if chunks:
-                chunks = deduplicate_chunks(chunks)
-                logger.info(f"Found {len(chunks)} relevant document chunks")
+                # Filter chunks by similarity threshold
+                similarity_threshold = getattr(settings, 'SIMILARITY_THRESHOLD', 0.75)
+                high_quality_chunks = [chunk for chunk in chunks if chunk.get("score", 0) >= similarity_threshold]
                 
-                # Build citations only if we have relevant chunks
-                for chunk in chunks:
-                    citation = Citation(
-                        doc_id=chunk["doc_id"],
-                        title=chunk["title"],
-                        page=chunk.get("page"),
-                        score=chunk["score"],
-                        url=build_document_url(chunk["doc_id"]),
-                        snippet=chunk["text"][:300] + "..." if len(chunk["text"]) > 300 else chunk["text"]
-                    )
-                    citations.append(citation)
+                if high_quality_chunks:
+                    chunks = deduplicate_chunks(high_quality_chunks)
+                    logger.info(f"Found {len(chunks)} high-quality document chunks (threshold: {similarity_threshold})")
+                    
+                    # Build citations only for high-quality chunks
+                    for chunk in chunks:
+                        citation = Citation(
+                            doc_id=chunk["doc_id"],
+                            title=chunk["title"],
+                            page=chunk.get("page"),
+                            score=chunk["score"],
+                            url=build_document_url(chunk["doc_id"]),
+                            snippet=chunk["text"][:250] + "..." if len(chunk["text"]) > 250 else chunk["text"]
+                        )
+                        citations.append(citation)
+                else:
+                    logger.info(f"No chunks met similarity threshold of {similarity_threshold}")
+                    chunks = []
             else:
                 logger.info("No relevant document chunks found")
         else:

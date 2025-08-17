@@ -25,10 +25,11 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "BAAI/bge-m3"
     
     # RAG Configuration
-    RAG_TOP_K: int = 6
-    CHUNK_TOKENS: int = 800
-    CHUNK_OVERLAP: int = 120
-    MAX_SNIPPETS_TOKENS: int = 2500
+    RAG_TOP_K: int = 5
+    CHUNK_TOKENS: int = 600
+    CHUNK_OVERLAP: int = 100
+    MAX_SNIPPETS_TOKENS: int = 2000
+    SIMILARITY_THRESHOLD: float = 0.75
     
     # Server Configuration
     SERVER_HOST: str = "0.0.0.0"
