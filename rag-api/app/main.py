@@ -88,9 +88,14 @@ app = FastAPI(
 )
 
 # Configure CORS
+# Ensure ALLOWED_ORIGINS is a list
+cors_origins = settings.ALLOWED_ORIGINS
+if isinstance(cors_origins, str):
+    cors_origins = [origin.strip() for origin in cors_origins.split(',')]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -420,6 +425,15 @@ async def root():
             "documents": "/documents",
             "stats": "/stats"
         }
+    }
+
+
+@app.get("/cors-debug")
+async def cors_debug():
+    """Debug endpoint to check CORS configuration."""
+    return {
+        "allowed_origins": settings.ALLOWED_ORIGINS,
+        "allowed_origins_type": type(settings.ALLOWED_ORIGINS).__name__
     }
 
 
