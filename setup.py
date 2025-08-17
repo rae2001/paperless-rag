@@ -20,8 +20,7 @@ def check_docker_permissions():
 
 def run_command(cmd, description, critical=True):
     """Run a shell command with description"""
-    # Use modern docker compose command
-    cmd = cmd.replace('docker-compose', 'docker compose')
+    # No need for replacement - commands already use modern docker compose syntax
     
     print(f"\n🔄 {description}")
     print(f"Running: {cmd}")
