@@ -1,0 +1,27 @@
+{
+  "models": [
+    {
+      "id": "paperless-rag",
+      "name": "Paperless Document Assistant",
+      "meta": {
+        "description": "AI assistant with intelligent access to your Paperless document collection. Ask questions about your documents, find specific information, and get comprehensive answers based on your personal knowledge base.",
+        "capabilities": {
+          "vision": false,
+          "function_calling": false,
+          "web_search": false,
+          "file_upload": false
+        },
+        "tags": ["documents", "paperless", "rag", "knowledge-base"],
+        "model_type": "chat"
+      },
+      "params": {
+        "temperature": 0.1,
+        "top_p": 0.9,
+        "max_tokens": 2048,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0
+      }
+    }
+  ],
+  "default_model": "paperless-rag"
+}
