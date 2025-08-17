@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # Server Configuration
     SERVER_HOST: str = "0.0.0.0"
     SERVER_PORT: int = 8088
-    ALLOWED_ORIGINS: str = "http://localhost,http://localhost:3000,http://192.168.1.77,http://192.168.1.77:3000,http://192.168.1.77:3001,http://192.168.1.139:3001"
+    ALLOWED_ORIGINS: str = "http://localhost,http://localhost:3000,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:8080,http://192.168.1.77,http://192.168.1.77:3000,http://192.168.1.77:8080,http://192.168.1.139:3001,*"
     
     # Logging Configuration
     LOG_LEVEL: str = "INFO"

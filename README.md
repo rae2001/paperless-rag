@@ -5,7 +5,7 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 ## Features
 
 - 🔍 **Natural Language Q&A**: Ask questions about your documents in plain English
-- 🖥️ **Beautiful Web UI**: Modern chat interface with real-time system monitoring
+- 🖥️ **Clean Chat UI**: Professional, error-free chat interface with automatic connection handling
 - 📚 **Multiple File Types**: Supports PDF, DOCX, and TXT files
 - 🌍 **Multilingual**: Uses BAAI/bge-m3 embeddings supporting 100+ languages
 - 🏠 **Privacy-First**: All document processing happens locally, only queries go to LLM
@@ -14,6 +14,7 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 - ⚡ **Fast Search**: Vector similarity search with Qdrant database
 - 🔄 **Auto-Sync**: Incremental document indexing from paperless-ngx
 - 📊 **Live Stats**: Real-time monitoring of documents, chunks, and system health
+- 🛠️ **Robust Error Handling**: Professional error handling with automatic retry and connection monitoring
 
 ## Architecture
 
@@ -89,17 +90,34 @@ curl http://localhost:8088/health
 
 You should see all components as "healthy".
 
-### 5. Start Web UI (Optional but Recommended)
+### 5. Start Web UI
+
+Choose between two UI options:
+
+#### Option A: Clean Chat UI (Recommended)
+
+```bash
+python3 serve_chat.py
+```
+
+This provides:
+- ✅ Professional, error-free chat interface
+- ✅ Automatic API connection detection
+- ✅ Robust error handling and retry logic
+- ✅ Mobile-responsive design
+- ✅ Starts on http://localhost:8080
+
+#### Option B: Full-Featured UI
 
 ```bash
 python3 start_ui.py
 ```
 
-This will:
-- ✅ Update API CORS settings 
-- ✅ Start web server at http://localhost:3000
-- ✅ Open browser automatically
-- ✅ Provide a beautiful chat interface
+This provides:
+- ✅ Complete dashboard with stats
+- ✅ System monitoring
+- ✅ Quick action buttons
+- ✅ Starts on http://localhost:3000
 
 ### 6. Ingest Documents
 
