@@ -126,7 +126,7 @@ def main():
     # Test API
     try:
         import requests
-        response = requests.get("http://localhost:8088/health", timeout=5)
+        response = requests.get("http://192.168.1.77:8088/health", timeout=5)
         if response.status_code == 200:
             print("✅ API is running")
         else:
@@ -150,7 +150,7 @@ def main():
         print(f"💡 Please open {url} manually in your browser")
     
     print(f"\n📱 Web UI: {url}")
-    print(f"🔗 API: http://localhost:8088")
+    print(f"🔗 API: http://192.168.1.77:8088")
     print(f"📄 Paperless: http://192.168.1.77:8000")
     print(f"\n🛑 Press Ctrl+C to stop")
     

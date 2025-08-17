@@ -37,7 +37,7 @@ def main():
             url = f"http://localhost:{PORT}"
             print(f"🌐 Serving Paperless RAG UI at: {url}")
             print(f"📱 Open this URL in your browser: {url}")
-            print(f"🔗 API running at: http://localhost:8088")
+            print(f"🔗 API running at: http://192.168.1.77:8088")
             print(f"📄 Paperless at: http://192.168.1.77:8000")
             print(f"\n🛑 Press Ctrl+C to stop the server")
             
