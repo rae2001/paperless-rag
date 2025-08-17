@@ -5,6 +5,7 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 ## Features
 
 - 🔍 **Natural Language Q&A**: Ask questions about your documents in plain English
+- 🖥️ **Beautiful Web UI**: Modern chat interface with real-time system monitoring
 - 📚 **Multiple File Types**: Supports PDF, DOCX, and TXT files
 - 🌍 **Multilingual**: Uses BAAI/bge-m3 embeddings supporting 100+ languages
 - 🏠 **Privacy-First**: All document processing happens locally, only queries go to LLM
@@ -12,6 +13,7 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 - 🐳 **Dockerized**: Easy deployment with docker-compose
 - ⚡ **Fast Search**: Vector similarity search with Qdrant database
 - 🔄 **Auto-Sync**: Incremental document indexing from paperless-ngx
+- 📊 **Live Stats**: Real-time monitoring of documents, chunks, and system health
 
 ## Architecture
 
@@ -87,7 +89,19 @@ curl http://localhost:8088/health
 
 You should see all components as "healthy".
 
-### 5. Ingest Documents
+### 5. Start Web UI (Optional but Recommended)
+
+```bash
+python3 start_ui.py
+```
+
+This will:
+- ✅ Update API CORS settings 
+- ✅ Start web server at http://localhost:3000
+- ✅ Open browser automatically
+- ✅ Provide a beautiful chat interface
+
+### 6. Ingest Documents
 
 Index all your paperless documents:
 
@@ -105,8 +119,15 @@ curl -X POST http://localhost:8088/ingest \
   -d '{"doc_id": 123}'
 ```
 
-### 6. Ask Questions
+### 7. Ask Questions
 
+**Option A: Use the Web UI (Recommended)**
+```bash
+python3 start_ui.py
+```
+This opens a beautiful web interface at http://localhost:3000
+
+**Option B: Use curl commands**
 ```bash
 curl -X POST http://localhost:8088/ask \
   -H "Content-Type: application/json" \

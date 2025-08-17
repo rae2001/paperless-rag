@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paperless RAG Q&A</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 15px 30px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-healthy { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-unknown { background: #6c757d; }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            min-height: 600px;
+        }
+
+        .chat-area {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            min-height: 400px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.system {
+            background: #e9ecef;
+            color: #495057;
+            text-align: center;
+            margin: 10px auto;
+            font-style: italic;
+        }
+
+        .citations {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .citations h4 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .citation {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+        }
+
+        .citation-header {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .citation-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.8em;
+        }
+
+        .citation-link:hover {
+            text-decoration: underline;
+        }
+
+        .citation-snippet {
+            color: #6c757d;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .question-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .question-input:focus {
+            border-color: #007bff;
+        }
+
+        .send-btn {
+            padding: 15px 25px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            padding: 30px 20px;
+            border-left: 1px solid #dee2e6;
+        }
+
+        .sidebar h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .stats-grid {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .quick-questions {
+            margin-top: 20px;
+        }
+
+        .quick-question {
+            background: white;
+            border: 1px solid #dee2e6;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 0.9em;
+        }
+
+        .quick-question:hover {
+            background: #e9ecef;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                border-left: none;
+                border-top: 1px solid #dee2e6;
+            }
+            
+            .message {
+                max-width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Paperless RAG Q&A</h1>
+            <p>Ask questions about your documents using AI-powered search</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot status-unknown" id="qdrant-status"></div>
+                <span>Qdrant</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot status-unknown" id="paperless-status"></div>
+                <span>Paperless</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot status-unknown" id="llm-status"></div>
+                <span>LLM</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot status-unknown" id="embedding-status"></div>
+                <span>Embeddings</span>
+            </div>
+            <div class="status-item">
+                <span id="last-updated">Loading...</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-area">
+                <div class="messages" id="messages">
+                    <div class="message system">
+                        👋 Welcome! Ask me questions about your documents. I'll search through your Paperless library and provide answers with citations.
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <input 
+                        type="text" 
+                        id="question-input" 
+                        class="question-input" 
+                        placeholder="Ask a question about your documents..."
+                        autocomplete="off"
+                    >
+                    <button id="send-btn" class="send-btn">Send</button>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <h3>📊 System Stats</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="docs-count">-</div>
+                        <div class="stat-label">Documents</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="chunks-count">-</div>
+                        <div class="stat-label">Text Chunks</div>
+                    </div>
+                </div>
+
+                <div class="quick-questions">
+                    <h3>💡 Quick Questions</h3>
+                    <div class="quick-question" data-question="What documents do I have?">
+                        What documents do I have?
+                    </div>
+                    <div class="quick-question" data-question="What topics are covered in my documents?">
+                        What topics are covered?
+                    </div>
+                    <div class="quick-question" data-question="Show me documents about contracts">
+                        Show me contracts
+                    </div>
+                    <div class="quick-question" data-question="What welding procedures do I have?">
+                        Welding procedures
+                    </div>
+                    <div class="quick-question" data-question="What quality requirements are mentioned?">
+                        Quality requirements
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8088';
+        
+        const messagesContainer = document.getElementById('messages');
+        const questionInput = document.getElementById('question-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // Initialize
+        loadStats();
+        checkHealth();
+        
+        // Auto-refresh stats every 30 seconds
+        setInterval(() => {
+            loadStats();
+            checkHealth();
+        }, 30000);
+
+        // Event listeners
+        sendBtn.addEventListener('click', askQuestion);
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') askQuestion();
+        });
+
+        // Quick questions
+        document.querySelectorAll('.quick-question').forEach(btn => {
+            btn.addEventListener('click', () => {
+                questionInput.value = btn.dataset.question;
+                askQuestion();
+            });
+        });
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                updateStatus('qdrant-status', data.components.qdrant);
+                updateStatus('paperless-status', data.components.paperless);
+                updateStatus('llm-status', data.components.llm);
+                updateStatus('embedding-status', data.components.embedding_model);
+                
+                document.getElementById('last-updated').textContent = 
+                    `Updated: ${new Date().toLocaleTimeString()}`;
+            } catch (error) {
+                console.error('Health check failed:', error);
+                document.getElementById('last-updated').textContent = 'Update failed';
+            }
+        }
+
+        function updateStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            element.className = 'status-dot ' + 
+                (status === 'healthy' ? 'status-healthy' : 
+                 status.includes('error') ? 'status-error' : 'status-unknown');
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const data = await response.json();
+                
+                document.getElementById('docs-count').textContent = 
+                    data.paperless_documents || '0';
+                document.getElementById('chunks-count').textContent = 
+                    data.vector_database?.points_count || '0';
+            } catch (error) {
+                console.error('Stats load failed:', error);
+            }
+        }
+
+        async function askQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            // Disable input
+            questionInput.disabled = true;
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<div class="loading"></div>';
+
+            // Add user message
+            addMessage(question, 'user');
+            questionInput.value = '';
+
+            try {
+                const response = await fetch(`${API_BASE}/ask`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: question })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                addMessage(data.answer, 'assistant', data.citations);
+
+            } catch (error) {
+                console.error('Question failed:', error);
+                addMessage(`Sorry, I encountered an error: ${error.message}`, 'assistant');
+            } finally {
+                // Re-enable input
+                questionInput.disabled = false;
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send';
+                questionInput.focus();
+            }
+        }
+
+        function addMessage(content, type, citations = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            let messageHTML = `<div>${content}</div>`;
+
+            if (citations && citations.length > 0) {
+                messageHTML += '<div class="citations">';
+                messageHTML += '<h4>📎 Sources:</h4>';
+                
+                citations.forEach(citation => {
+                    const pageText = citation.page ? `, Page ${citation.page}` : '';
+                    const scoreText = citation.score ? ` (${(citation.score * 100).toFixed(1)}%)` : '';
+                    
+                    messageHTML += `
+                        <div class="citation">
+                            <div class="citation-header">
+                                📄 ${citation.title}${pageText}${scoreText}
+                            </div>
+                            ${citation.url ? `<a href="${citation.url}" target="_blank" class="citation-link">View in Paperless →</a>` : ''}
+                            ${citation.snippet ? `<div class="citation-snippet">"${citation.snippet.substring(0, 150)}..."</div>` : ''}
+                        </div>
+                    `;
+                });
+                
+                messageHTML += '</div>';
+            }
+
+            messageDiv.innerHTML = messageHTML;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    </script>
+</body>
+</html>
