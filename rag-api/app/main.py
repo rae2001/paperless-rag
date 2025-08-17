@@ -434,6 +434,20 @@ async def root():
     }
 
 
+@app.options("/{path:path}")
+async def options_handler():
+    """Handle all OPTIONS requests for CORS preflight."""
+    return JSONResponse(
+        status_code=200,
+        content={"message": "OK"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Max-Age": "3600",
+        }
+    )
+
 @app.get("/cors-debug")
 async def cors_debug():
     """Debug endpoint to check CORS configuration."""
