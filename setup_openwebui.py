@@ -9,8 +9,20 @@ import time
 import requests
 import json
 
+def check_docker_permissions():
+    """Check if sudo is needed for Docker commands"""
+    try:
+        result = subprocess.run(['docker', 'ps'], capture_output=True, text=True)
+        return result.returncode == 0
+    except:
+        return False
+
 def run_command(cmd, description):
-    """Run a shell command with description"""
+    """Run a shell command with description, adding sudo if needed"""
+    # Check if we need sudo for docker commands
+    if 'docker' in cmd and not check_docker_permissions():
+        cmd = f"sudo {cmd}"
+    
     print(f"\n{description}")
     print(f"Running: {cmd}")
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -78,6 +90,10 @@ def setup_openwebui_model():
 def main():
     print("🚀 Setting up OpenWebUI for Paperless RAG")
     print("=" * 50)
+    
+    # Check Docker permissions
+    if not check_docker_permissions():
+        print("ℹ️  Sudo required for Docker commands - will use sudo automatically")
     
     # Check if RAG API is running
     if not check_api_health():
