@@ -27,14 +27,45 @@ services:
     ports:
       - "3001:8080"
     environment:
+      # API Configuration
       - OPENAI_API_BASE_URL=http://192.168.1.77:8088
       - OPENAI_API_KEY=dummy-key-not-needed
-      - WEBUI_SECRET_KEY=your-secret-key-change-this
+      
+      # Security
+      - WEBUI_SECRET_KEY=paperless-rag-secret-key-2024
+      
+      # UI Branding & Configuration
+      - WEBUI_NAME=Paperless Document Assistant
+      - DEFAULT_MODELS=paperless-rag
+      - DEFAULT_USER_ROLE=user
+      
+      # RAG Configuration (optimized for paperless-rag)
       - RAG_ENABLED=true
       - ENABLE_RAG_WEB_SEARCH=false
       - ENABLE_LOCAL_WEB_FETCH=true
+      - RAG_EMBEDDING_ENGINE=ollama
+      - PDF_EXTRACT_IMAGES=false
+      
+      # Feature Toggles (optimized for document Q&A)
+      - ENABLE_SIGNUP=true
+      - ENABLE_LOGIN_FORM=true
+      - ENABLE_WEB_SEARCH=false
+      - ENABLE_IMAGE_GENERATION=false
+      - ENABLE_COMMUNITY_SHARING=false
+      
+      # Model & Chat Configuration
+      - MODEL_FILTER_ENABLED=false
+      - ENABLE_MODEL_FILTER=false
+      - ENABLE_MESSAGE_RATING=true
+      - ENABLE_MESSAGE_EDITING=true
+      - SHOW_ADMIN_DETAILS=true
+      
+      # Database
+      - DATABASE_URL=sqlite:///app/backend/data/webui.db
+      
     volumes:
       - open-webui-data:/app/backend/data
+      - ./openwebui-config:/app/backend/config:ro
     restart: unless-stopped
     depends_on:
       - rag-api

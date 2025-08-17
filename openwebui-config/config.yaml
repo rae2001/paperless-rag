@@ -1,0 +1,55 @@
+# OpenWebUI Configuration for Paperless RAG Integration
+# This file provides custom configuration for better integration
+
+# UI Customization
+ui:
+  name: "Paperless Document Assistant"
+  description: "AI-powered Q&A for your document collection"
+  favicon: "/favicon.ico"
+  logo: null
+  
+# Default Settings for New Users
+defaults:
+  model: "paperless-rag"
+  temperature: 0.1
+  top_p: 0.9
+  max_tokens: 1000
+  
+# Chat Behavior
+chat:
+  default_system_prompt: |
+    You are a helpful document assistant specializing in answering questions about documents.
+    Always provide specific citations when referencing document content.
+    If you cannot find relevant information in the provided context, clearly state this.
+  
+  suggestions:
+    - "What documents do I have about [topic]?"
+    - "Summarize the key points from [document name]"
+    - "Find information about [specific topic] in my documents"
+    - "Compare information between multiple documents"
+
+# Model Configuration
+models:
+  paperless-rag:
+    name: "Paperless RAG"
+    description: "Document Q&A powered by your paperless collection"
+    capabilities:
+      - "document_search"
+      - "citation_generation"
+      - "multi_document_analysis"
+
+# RAG-specific settings
+rag:
+  enabled: true
+  chunk_size: 600
+  chunk_overlap: 100
+  top_k: 5
+  similarity_threshold: 0.75
+  
+# Feature flags optimized for document Q&A
+features:
+  web_search: false
+  image_generation: false
+  code_execution: false
+  file_upload: true
+  document_analysis: true

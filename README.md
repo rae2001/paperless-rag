@@ -96,14 +96,22 @@ You should see all components as "healthy".
 python3 setup_openwebui.py
 ```
 
-**🎯 OpenWebUI Features:**
-- ✅ Professional ChatGPT-like interface
-- ✅ Multi-user support with accounts
-- ✅ Conversation history and management
-- ✅ Built-in RAG integration
-- ✅ Model switching capabilities
+**🎯 Enhanced OpenWebUI Integration:**
+- ✅ **Branded Experience**: "Paperless Document Assistant" with custom branding
+- ✅ **Document-Focused UI**: Suggestions tailored for document Q&A
+- ✅ **Optimized RAG Settings**: Pre-configured for paperless-rag API integration
+- ✅ **Professional Interface**: ChatGPT-like experience with conversation history
+- ✅ **Multi-user Support**: Account management and role-based access
+- ✅ **Enhanced Features**: Message rating, editing, and file upload support
+- ✅ **Privacy-First**: Disabled web search and unnecessary features
 - ✅ Much more stable than custom solutions
-- ✅ Opens at http://192.168.1.77:3000
+- ✅ Opens at http://192.168.1.77:3001
+
+**🔧 Custom Configuration:**
+The enhanced setup includes:
+- `openwebui-config/config.yaml`: Custom UI settings and chat suggestions
+- Optimized environment variables for document-focused workflows
+- Pre-configured model settings with appropriate defaults
 
 ### 6. Ingest Documents
 
@@ -129,7 +137,7 @@ curl -X POST http://localhost:8088/ingest \
 ```bash
 python3 setup_openwebui.py
 ```
-This opens a professional chat interface at http://192.168.1.77:3000
+This opens the Paperless Document Assistant at http://192.168.1.77:3001
 
 **Option B: Use curl commands**
 ```bash
