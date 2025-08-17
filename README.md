@@ -34,6 +34,7 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 - Running paperless-ngx instance
 - OpenRouter API key ([get one here](https://openrouter.ai/))
 - Paperless-ngx API token
+- sudo access (if required for Docker on your system)
 
 ### 1. Clone and Setup
 

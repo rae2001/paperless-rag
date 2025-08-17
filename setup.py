@@ -20,7 +20,9 @@ def check_docker_permissions():
 
 def run_command(cmd, description, critical=True):
     """Run a shell command with description"""
-    # No need for replacement - commands already use modern docker compose syntax
+    # Add sudo for docker commands if needed
+    if 'docker' in cmd and not check_docker_permissions():
+        cmd = f"sudo {cmd}"
     
     print(f"\n🔄 {description}")
     print(f"Running: {cmd}")
@@ -88,6 +90,9 @@ def main():
         print("Please edit your .env file and run this script again.")
         sys.exit(0)
     
+    if not check_docker_permissions():
+        print("ℹ️  Sudo required for Docker commands - will use sudo automatically")
+    
     # Stop any existing services
     print("\n🛑 Stopping existing services")
     run_command("docker compose down", "Stopping main services", critical=False)
@@ -127,9 +132,10 @@ def main():
     print("")
     
     print("🔧 Troubleshooting:")
-    print("   • View logs: docker compose -f docker-compose-openwebui.yml logs")
-    print("   • Restart:   docker compose -f docker-compose-openwebui.yml restart")
-    print("   • Stop:      docker compose -f docker-compose-openwebui.yml down")
+    sudo_prefix = "sudo " if not check_docker_permissions() else ""
+    print(f"   • View logs: {sudo_prefix}docker compose -f docker-compose-openwebui.yml logs")
+    print(f"   • Restart:   {sudo_prefix}docker compose -f docker-compose-openwebui.yml restart")
+    print(f"   • Stop:      {sudo_prefix}docker compose -f docker-compose-openwebui.yml down")
     print("")
     
     print("✨ Your Paperless RAG system is ready!")

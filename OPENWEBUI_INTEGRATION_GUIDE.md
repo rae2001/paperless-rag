@@ -15,7 +15,7 @@ python test_setup.py
 
 ### Option 2: Manual Step-by-Step Setup
 ```bash
-# 1. Start the integrated system
+# 1. Start the integrated system (use sudo if needed)
 docker compose -f docker-compose-openwebui.yml up -d
 
 # 2. Open http://localhost:3001 and configure manually
