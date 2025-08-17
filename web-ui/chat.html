@@ -324,6 +324,7 @@
             <div class="status-indicator">
                 <div class="status-dot" id="status-dot"></div>
                 <span id="status-text">Connecting...</span>
+                <button id="config-btn" style="margin-left: 1rem; padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Config</button>
             </div>
         </div>
 
@@ -367,23 +368,37 @@
                     sendButton: document.getElementById('send-button'),
                     statusDot: document.getElementById('status-dot'),
                     statusText: document.getElementById('status-text'),
-                    quickActions: document.getElementById('quick-actions')
+                    quickActions: document.getElementById('quick-actions'),
+                    configBtn: document.getElementById('config-btn')
                 };
                 
                 this.init();
             }
             
             detectApiUrl() {
+                // Check if user has manually set an API URL
+                const savedUrl = localStorage.getItem('paperless-rag-api-url');
+                if (savedUrl) {
+                    return savedUrl;
+                }
+                
                 // Try to detect the API URL automatically
                 const hostname = window.location.hostname;
                 const protocol = window.location.protocol;
                 
-                // If we're on localhost, try localhost:8088
+                // For local development, try multiple common configurations
                 if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                    return `${protocol}//localhost:8088`;
+                    // Return an array of URLs to try in order
+                    this.apiUrls = [
+                        `${protocol}//localhost:8088`,
+                        `${protocol}//127.0.0.1:8088`,
+                        `http://localhost:8088`,
+                        `http://127.0.0.1:8088`
+                    ];
+                    return this.apiUrls[0];
                 }
                 
-                // Otherwise, use the same hostname with port 8088
+                // For remote access, use the same hostname with port 8088
                 return `${protocol}//${hostname}:8088`;
             }
             
@@ -416,6 +431,8 @@
                     }
                 });
                 
+                this.elements.configBtn.addEventListener('click', () => this.showConfigModal());
+                
                 // Auto-resize input on mobile
                 this.elements.input.addEventListener('input', () => {
                     this.elements.input.style.height = 'auto';
@@ -424,22 +441,57 @@
             }
             
             async checkConnection() {
-                try {
-                    const response = await fetch(`${this.apiBase}/health`, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
+                // If we have multiple URLs to try, attempt each one
+                if (this.apiUrls && this.apiUrls.length > 1) {
+                    for (let i = 0; i < this.apiUrls.length; i++) {
+                        const testUrl = this.apiUrls[i];
+                        console.log(`Trying API URL: ${testUrl}`);
+                        
+                        try {
+                            const response = await fetch(`${testUrl}/health`, {
+                                method: 'GET',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                mode: 'cors'
+                            });
+                            
+                            if (response.ok) {
+                                console.log(`✓ Connected to API at: ${testUrl}`);
+                                this.apiBase = testUrl;
+                                this.setConnected(true);
+                                return;
+                            }
+                        } catch (error) {
+                            console.log(`✗ Failed to connect to ${testUrl}:`, error.message);
+                            continue;
                         }
-                    });
-                    
-                    if (response.ok) {
-                        this.setConnected(true);
-                    } else {
-                        this.setConnected(false);
                     }
-                } catch (error) {
-                    console.error('Connection check failed:', error);
+                    
+                    // If we get here, none of the URLs worked
                     this.setConnected(false);
+                    this.showConnectionHelp();
+                } else {
+                    // Single URL approach
+                    try {
+                        const response = await fetch(`${this.apiBase}/health`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            mode: 'cors'
+                        });
+                        
+                        if (response.ok) {
+                            this.setConnected(true);
+                        } else {
+                            this.setConnected(false);
+                        }
+                    } catch (error) {
+                        console.error('Connection check failed:', error);
+                        this.setConnected(false);
+                        this.showConnectionHelp();
+                    }
                 }
             }
             
@@ -456,6 +508,40 @@
                     if (errorMsg) {
                         errorMsg.remove();
                     }
+                }
+            }
+            
+            showConnectionHelp() {
+                if (this.elements.messages.querySelector('.connection-help')) {
+                    return; // Don't show multiple help messages
+                }
+                
+                const helpMessage = `
+                    <strong>Connection Issue Detected</strong><br><br>
+                    The chat UI cannot connect to the API. Please check:<br>
+                    • Is the API running? (docker compose up)<br>
+                    • Is it accessible at localhost:8088?<br>
+                    • Are there any firewall or antivirus blocking the connection?<br><br>
+                    <em>Try clicking the "Config" button to manually set the API URL or check the browser console for detailed error information.</em>
+                `;
+                
+                this.addMessage(helpMessage, 'error', null, 'connection-help');
+            }
+            
+            showConfigModal() {
+                const currentUrl = this.apiBase || 'http://localhost:8088';
+                const newUrl = prompt(`Enter API URL (current: ${currentUrl}):`, currentUrl);
+                
+                if (newUrl && newUrl !== currentUrl) {
+                    this.apiBase = newUrl.replace(/\/$/, ''); // Remove trailing slash
+                    localStorage.setItem('paperless-rag-api-url', this.apiBase);
+                    
+                    // Clear any existing error messages
+                    const errorMsgs = this.elements.messages.querySelectorAll('.connection-error, .connection-help');
+                    errorMsgs.forEach(msg => msg.remove());
+                    
+                    this.addMessage(`Updated API URL to: ${this.apiBase}`, 'info');
+                    this.checkConnection();
                 }
             }
             
@@ -531,7 +617,9 @@
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${type} ${className}`.trim();
                 
-                let messageHTML = `<div class="message-content">${this.escapeHtml(content)}</div>`;
+                // For error messages with HTML, don't escape. For user content, escape.
+                const messageContent = (type === 'error' && className) ? content : this.escapeHtml(content);
+                let messageHTML = `<div class="message-content">${messageContent}</div>`;
                 
                 if (citations && citations.length > 0) {
                     messageHTML += '<div class="citations">';
