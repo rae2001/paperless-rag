@@ -12,19 +12,17 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 # System prompt for RAG Q&A
-SYSTEM_PROMPT = """You are a helpful and precise assistant. Prefer answering based on the provided context from documents. If no context is provided or it is irrelevant, you may answer generally and conversationally, but keep answers concise and factual. Maintain a professional tone.
+SYSTEM_PROMPT = """You are a helpful and intelligent document assistant. Today's date is {today}. You have access to a knowledge base of documents and can answer questions based on their content. When documents appear to be from the same project or related topics, make connections between them to provide comprehensive insights.
 
 Key guidelines:
-1. If context is provided, use ONLY the information in that context for the main answer
-2. If context is empty or irrelevant, you can answer generally in a helpful way
-3. When context was used, include specific citations using [Doc Title, Page X]
-4. Be concise but comprehensive; use short paragraphs or bullet points when helpful
-5. Do not invent facts that are not supported by either context or common knowledge
+1. If document context is provided, prioritize information from those documents
+2. Look for relationships between documents (same project, related topics, cross-references)
+3. If no relevant context exists, provide helpful general answers
+4. Be concise but thorough - use bullet points or short paragraphs for clarity
+5. Do NOT include numbered citations like [1] or [2] in your response
+6. Mention document titles naturally in your answer when referencing specific sources
 
-Format your response as:
-- A direct answer to the question (2-4 sentences)
-- A "Sources:" section listing the relevant citations
-"""
+Remember: You're helping users understand their document collection, so identify patterns, relationships, and provide actionable insights when possible."""
 
 
 def estimate_tokens(text: str) -> int:
@@ -52,33 +50,47 @@ def build_context_prompt(query: str, chunks: List[Dict[str, Any]], history: Opti
     Returns:
         List of message dictionaries for the LLM
     """
-    # Build context from chunks
+    # Build context from chunks, grouping by document
+    doc_groups = {}
+    for chunk in chunks:
+        doc_id = chunk.get("doc_id")
+        if doc_id not in doc_groups:
+            doc_groups[doc_id] = {
+                "title": chunk.get("title", "Unknown Document"),
+                "chunks": []
+            }
+        doc_groups[doc_id]["chunks"].append(chunk)
+    
     context_parts = []
     total_tokens = 0
     max_tokens = settings.MAX_SNIPPETS_TOKENS
     
-    for i, chunk in enumerate(chunks, 1):
-        title = chunk.get("title", "Unknown Document")
-        page = chunk.get("page")
-        text = chunk.get("text", "")
+    # Format context by document
+    for doc_id, doc_info in doc_groups.items():
+        title = doc_info["title"]
         
-        # Format citation
-        if page:
-            citation = f"{title}, Page {page}"
-        else:
-            citation = title
+        # Start document section
+        doc_header = f"\n=== From document: {title} ===\n"
+        context_parts.append(doc_header)
         
-        # Build context entry
-        context_entry = f"[{i}] {citation}:\n{text}\n"
-        
-        # Check token limit
-        entry_tokens = estimate_tokens(context_entry)
-        if total_tokens + entry_tokens > max_tokens:
-            logger.warning(f"Reached token limit, truncating context at {i-1} chunks")
-            break
-        
-        context_parts.append(context_entry)
-        total_tokens += entry_tokens
+        # Add chunks from this document
+        for chunk in doc_info["chunks"]:
+            page = chunk.get("page")
+            text = chunk.get("text", "")
+            
+            if page:
+                context_entry = f"Page {page}:\n{text}\n"
+            else:
+                context_entry = f"{text}\n"
+            
+            # Check token limit
+            entry_tokens = estimate_tokens(context_entry)
+            if total_tokens + entry_tokens > max_tokens:
+                logger.warning(f"Reached token limit, truncating context")
+                break
+            
+            context_parts.append(context_entry)
+            total_tokens += entry_tokens
     
     context = "\n".join(context_parts)
     
@@ -88,9 +100,12 @@ def build_context_prompt(query: str, chunks: List[Dict[str, Any]], history: Opti
 Context from documents:
 {context}
 
-Please answer the question based on the provided context. Include specific citations in your response."""
+Please answer the question based on the provided context. When referencing information, mention the document titles naturally in your response."""
     
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    # Format system prompt with today's date
+    from datetime import date
+    system_prompt = SYSTEM_PROMPT.format(today=date.today().strftime("%B %d, %Y"))
+    messages = [{"role": "system", "content": system_prompt}]
     # Append recent history (bounded to last 6 exchanges)
     if history:
         trimmed = history[-12:]

@@ -336,6 +336,24 @@
             animation: glow 1.2s ease-out 1;
         }
         @keyframes glow { from { box-shadow: 0 0 0 0 rgba(94,114,228,0.28);} to { box-shadow: 0 0 0 10px rgba(94,114,228,0);} }
+        
+        /* Streaming text effect */
+        .streaming .message-content {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* Welcome message animation */
+        .welcome-fade {
+            animation: welcomeFade 0.5s ease-out;
+        }
+        @keyframes welcomeFade {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
 
         /* Spinner */
         .spinner {
@@ -452,10 +470,15 @@
 
         <div class="chat-area">
             <div class="messages-container" id="messagesContainer">
-                <div class="message">
+                <div class="message welcome-fade">
                     <div class="message-wrapper system">
                         <div class="message-content">
-                            Welcome! I can help you search and ask questions about your documents. Type a message below to get started.
+                            Welcome! I'm your intelligent document assistant. I can help you:
+                            <br>• Search and analyze your documents
+                            <br>• Find connections between related files
+                            <br>• Answer questions about your content
+                            <br>• Have general conversations too
+                            <br><br>Just type your question below!
                         </div>
                     </div>
                 </div>
@@ -711,14 +734,23 @@
         }
         
         function renderMarkdown(text) {
-            // Lightweight markdown formatter: paragraphs, lists, code blocks, headings, tables
-            let html = text
-                .replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
-                .replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
-                .replace(/^#\s+(.*)$/gm, '<h1>$1</h1>')
-                .replace(/^\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/^\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`([^`]+)`/g, '<code>$1</code>');
+            // Remove [1], [2] style citations
+            text = text.replace(/\[\d+\]/g, '');
+            
+            // Escape HTML first
+            let html = text.replace(/[<>]/g, m => m === '<' ? '&lt;' : '&gt;');
+            
+            // Bold and italic (handle ** before * to avoid conflicts)
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Headings
+            html = html.replace(/^###\s+(.*)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
+            
+            // Inline code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
             // Code blocks ```
             html = html.replace(/```([\s\S]*?)```/g, (m, code) => `<pre><code>${escapeHtml(code.trim())}</code></pre>`);

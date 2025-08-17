@@ -1,7 +1,7 @@
 """Vector search and retrieval functionality."""
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Filter, FieldCondition, MatchAny
 from sentence_transformers import SentenceTransformer
@@ -73,7 +73,7 @@ def search_similar_chunks(
             chunk_data = {
                 "text": result.payload.get("text", ""),
                 "doc_id": result.payload.get("doc_id"),
-                "title": result.payload.get("title", f"Document {result.payload.get('doc_id')}"),
+                "title": result.payload.get("title", f"Document {result.payload.get('doc_id')}") ,
                 "page": result.payload.get("page"),
                 "file_type": result.payload.get("file_type", "unknown"),
                 "tags": result.payload.get("tags", []),
@@ -82,7 +82,26 @@ def search_similar_chunks(
             }
             formatted_results.append(chunk_data)
         
-        logger.info(f"Found {len(formatted_results)} similar chunks for query")
+        # Project-aware boost: group by inferred project-related tags and boost grouped items
+        def infer_project_tags(tags: List[str]) -> Tuple[str, ...]:
+            keywords = ("project", "job", "site", "neom", "port", "warehouse", "contract")
+            lowered = [t.lower() for t in tags]
+            return tuple(sorted({t for t in lowered if any(k in t for k in keywords)}))
+        
+        project_groups: Dict[Tuple[str, ...], List[Dict[str, Any]]] = {}
+        for item in formatted_results:
+            key = infer_project_tags(item.get("tags", []))
+            project_groups.setdefault(key, []).append(item)
+        
+        for key, items in project_groups.items():
+            if not key or len(items) < 2:
+                continue
+            boost = min(0.05 * (len(items) - 1), 0.2)  # cap boost
+            for it in items:
+                it["score"] += boost
+        
+        formatted_results.sort(key=lambda x: x["score"], reverse=True)
+        logger.info(f"Found {len(formatted_results)} similar chunks for query (with project grouping boost)")
         return formatted_results
         
     except Exception as e:
@@ -270,7 +289,8 @@ def get_chunks_summary(
 
 def deduplicate_chunks(chunks: List[Dict[str, Any]], similarity_threshold: float = 0.95) -> List[Dict[str, Any]]:
     """
-    Remove highly similar chunks to improve result diversity.
+    Remove highly similar chunks while preserving diversity across documents.
+    Prioritizes keeping chunks from different documents to show relationships.
     
     Args:
         chunks: List of chunk dictionaries
@@ -282,9 +302,32 @@ def deduplicate_chunks(chunks: List[Dict[str, Any]], similarity_threshold: float
     if len(chunks) <= 1:
         return chunks
     
+    # Group chunks by document
+    doc_chunks = {}
+    for chunk in chunks:
+        doc_id = chunk.get("doc_id")
+        if doc_id not in doc_chunks:
+            doc_chunks[doc_id] = []
+        doc_chunks[doc_id].append(chunk)
+    
     deduplicated = []
     
+    # First pass: Take best chunk from each document
+    for doc_id, doc_chunk_list in doc_chunks.items():
+        # Sort by score and take the best one
+        best_chunk = max(doc_chunk_list, key=lambda x: x.get("score", 0))
+        deduplicated.append(best_chunk)
+    
+    # Second pass: Add additional high-scoring chunks if not too similar
+    remaining_chunks = []
     for chunk in chunks:
+        if chunk not in deduplicated:
+            remaining_chunks.append(chunk)
+    
+    # Sort remaining by score
+    remaining_chunks.sort(key=lambda x: x.get("score", 0), reverse=True)
+    
+    for chunk in remaining_chunks:
         is_duplicate = False
         chunk_text = chunk["text"].lower()
         
@@ -302,5 +345,5 @@ def deduplicate_chunks(chunks: List[Dict[str, Any]], similarity_threshold: float
         if not is_duplicate:
             deduplicated.append(chunk)
     
-    logger.info(f"Deduplicated {len(chunks)} chunks to {len(deduplicated)} unique chunks")
+    logger.info(f"Deduplicated {len(chunks)} chunks to {len(deduplicated)} unique chunks from {len(doc_chunks)} documents")
     return deduplicated
