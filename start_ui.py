@@ -114,13 +114,24 @@ def start_ui_server():
 
 
 def main():
-    print("🚀 Starting Paperless RAG Web UI")
+    print("🚀 Starting Paperless RAG Legacy Web UI")
+    print("=" * 40)
+    print("⚠️  WARNING: This legacy UI has CORS issues!")
+    print("💡 Consider using the new Streamlit UI instead:")
+    print("   python3 start_streamlit.py")
     print("=" * 40)
     
     # Check if web-ui exists
-    if not Path("web-ui/index.html").exists():
-        print("❌ Web UI files not found!")
-        sys.exit(1)
+    print("❌ Legacy Web UI has been removed due to CORS issues!")
+    print("🔄 Please use the new Streamlit UI instead:")
+    print("   python3 start_streamlit.py")
+    print("")
+    print("✨ The Streamlit UI is much better:")
+    print("   - No CORS issues")
+    print("   - Better chat interface") 
+    print("   - Real-time status monitoring")
+    print("   - Professional appearance")
+    sys.exit(1)
     
     # Restart API with updated CORS
     if not restart_api():

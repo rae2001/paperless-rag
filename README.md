@@ -92,14 +92,20 @@ You should see all components as "healthy".
 ### 5. Start Web UI (Optional but Recommended)
 
 ```bash
-python3 start_ui.py
+# 🚀 NEW: Modern Streamlit UI (Recommended)
+python3 start_streamlit.py
+
+# Or use the interactive launcher
+python3 run_ui.py
 ```
 
-This will:
-- ✅ Update API CORS settings 
-- ✅ Start web server at http://localhost:3000
-- ✅ Open browser automatically
-- ✅ Provide a beautiful chat interface
+**🎯 Streamlit UI Features:**
+- ✅ No CORS issues (unlike the old UI)
+- ✅ Beautiful modern chat interface
+- ✅ Real-time system monitoring
+- ✅ Citation display with document links
+- ✅ Quick question buttons
+- ✅ Auto-opens at http://192.168.1.77:8501
 
 ### 6. Ingest Documents
 
@@ -121,11 +127,11 @@ curl -X POST http://localhost:8088/ingest \
 
 ### 7. Ask Questions
 
-**Option A: Use the Web UI (Recommended)**
+**Option A: Use the Streamlit UI (Recommended)**
 ```bash
-python3 start_ui.py
+python3 start_streamlit.py
 ```
-This opens a beautiful web interface at http://localhost:3000
+This opens a modern chat interface at http://192.168.1.77:8501
 
 **Option B: Use curl commands**
 ```bash
