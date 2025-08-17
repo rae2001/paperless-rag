@@ -16,6 +16,43 @@ ValueError: Due to a serious vulnerability issue in `torch.load`, even with `wei
 **Problem**: The torch version is too old for the security requirements.
 **Solution**: The requirements.txt has been updated to `torch>=2.6.0`. Rebuild the container.
 
+### Paperless API Connection Issues
+
+If you see this error:
+```
+Failed to connect to paperless-ngx: Redirect response '302 Found'
+```
+
+**Common causes:**
+1. **Paperless not running**: Check if paperless-ngx is accessible at http://192.168.1.77:8000
+2. **Wrong API URL**: Some paperless setups need different endpoint paths
+3. **Authentication issues**: API token might be invalid or missing permissions
+4. **API not enabled**: Paperless API might be disabled in settings
+
+**Solutions:**
+```bash
+# Test your connections
+python3 test_connections.py
+
+# Check paperless is running
+curl http://192.168.1.77:8000
+
+# Test API directly  
+curl -H "Authorization: Token YOUR_TOKEN" http://192.168.1.77:8000/api/documents/
+```
+
+### OpenRouter Payment Issues
+
+If you see this error:
+```
+HTTP error calling OpenRouter: Client error '402 Payment Required'
+```
+
+**Problem**: Your OpenRouter account needs credits.
+**Solution**: Add credits at https://openrouter.ai/settings/credits
+
+**For testing**: Use free tier models or add $5-10 credits.
+
 ### Problem
 The error shows:
 ```

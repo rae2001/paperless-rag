@@ -166,17 +166,30 @@ async def test_connection() -> bool:
     Returns:
         True if connection is successful, False otherwise
     """
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         try:
+            # Try the documents endpoint instead of base API
             response = await client.get(
-                f"{settings.PAPERLESS_BASE_URL}/api/",
-                headers=HEADERS
+                f"{settings.PAPERLESS_BASE_URL}/api/documents/",
+                headers=HEADERS,
+                params={"page_size": 1}
             )
             response.raise_for_status()
             logger.info("Successfully connected to paperless-ngx")
             return True
         except httpx.HTTPError as e:
             logger.error(f"Failed to connect to paperless-ngx: {e}")
+            # Try alternative endpoint
+            try:
+                response = await client.get(
+                    f"{settings.PAPERLESS_BASE_URL}/api/",
+                    headers=HEADERS
+                )
+                if response.status_code == 200:
+                    logger.info("Connected to paperless-ngx (via base API)")
+                    return True
+            except:
+                pass
             return False
 
 
