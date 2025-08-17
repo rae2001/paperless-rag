@@ -89,29 +89,24 @@ curl http://localhost:8088/health
 
 You should see all components as "healthy".
 
-### 5. Start OpenWebUI (Recommended)
+### 5. Start Web UI (Optional but Recommended)
 
 ```bash
-# 🚀 Setup professional OpenWebUI interface
-python3 setup_openwebui.py
+# 🏢 Professional Gradio UI (Recommended for Business)
+python3 start_gradio.py
+
+# Or use the interactive launcher
+python3 run_ui.py
 ```
 
-**🎯 Enhanced OpenWebUI Integration:**
-- ✅ **Branded Experience**: "Paperless Document Assistant" with custom branding
-- ✅ **Document-Focused UI**: Suggestions tailored for document Q&A
-- ✅ **Optimized RAG Settings**: Pre-configured for paperless-rag API integration
-- ✅ **Professional Interface**: ChatGPT-like experience with conversation history
-- ✅ **Multi-user Support**: Account management and role-based access
-- ✅ **Enhanced Features**: Message rating, editing, and file upload support
-- ✅ **Privacy-First**: Disabled web search and unnecessary features
-- ✅ Much more stable than custom solutions
-- ✅ Opens at http://192.168.1.77:3001
-
-**🔧 Custom Configuration:**
-The enhanced setup includes:
-- `openwebui-config/config.yaml`: Custom UI settings and chat suggestions
-- Optimized environment variables for document-focused workflows
-- Pre-configured model settings with appropriate defaults
+**🎯 Professional Gradio UI Features:**
+- ✅ Business-ready corporate interface
+- ✅ Clean, professional design suitable for company staff
+- ✅ Excellent integration with existing systems
+- ✅ Real-time system monitoring and status
+- ✅ Document citations with relevance scores
+- ✅ Quick action buttons for common queries
+- ✅ Accessible at http://192.168.1.77:7860
 
 ### 6. Ingest Documents
 
@@ -133,11 +128,11 @@ curl -X POST http://localhost:8088/ingest \
 
 ### 7. Ask Questions
 
-**Option A: Use OpenWebUI (Recommended)**
+**Option A: Use the Professional Gradio UI (Recommended)**
 ```bash
-python3 setup_openwebui.py
+python3 start_gradio.py
 ```
-This opens the Paperless Document Assistant at http://192.168.1.77:3001
+This opens a business-ready interface at http://192.168.1.77:7860
 
 **Option B: Use curl commands**
 ```bash
