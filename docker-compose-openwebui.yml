@@ -28,7 +28,7 @@ services:
       - "3001:8080"
     environment:
       # API Configuration
-      - OPENAI_API_BASE_URL=http://192.168.1.77:8088
+      - OPENAI_API_BASE_URL=http://rag-api:8088
       - OPENAI_API_KEY=dummy-key-not-needed
       
       # Security

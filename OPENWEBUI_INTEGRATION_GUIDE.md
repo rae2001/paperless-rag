@@ -4,34 +4,39 @@ This guide covers the complete integration of OpenWebUI with your Paperless RAG 
 
 ## 🚀 Quick Start
 
-### Option 1: Complete Automated Setup
+### Option 1: Automated Setup (Recommended)
 ```bash
-# Run the complete integration setup
-python3 setup_complete_integration.py
+# Single command setup - handles everything
+python setup.py
+
+# Test the installation
+python test_setup.py
 ```
 
 ### Option 2: Manual Step-by-Step Setup
 ```bash
 # 1. Start the integrated system
-sudo docker compose -f docker-compose-openwebui.yml up -d
+docker compose -f docker-compose-openwebui.yml up -d
 
-# 2. Initialize OpenWebUI configuration
-python3 initialize_openwebui.py
+# 2. Open http://localhost:3001 and configure manually
+# Go to Settings > Connections > Add OpenAI API
+# Base URL: http://localhost:8088, API Key: dummy-key-not-needed
 ```
 
 ## 🌐 Access URLs
 
-- **OpenWebUI Interface**: http://192.168.1.77:3001
-- **RAG API**: http://192.168.1.77:8088
-- **API Documentation**: http://192.168.1.77:8088/docs
-- **Qdrant Dashboard**: http://192.168.1.77:6333/dashboard
+- **OpenWebUI Interface**: http://localhost:3001
+- **RAG API**: http://localhost:8088
+- **API Documentation**: http://localhost:8088/docs
+- **Qdrant Dashboard**: http://localhost:6333/dashboard
 
-## 🔐 Default Credentials
+## 🔐 Initial Setup
 
-- **Email**: admin@paperless-rag.local
-- **Password**: admin123
-
-**⚠️ Important**: Change these credentials immediately after first login!
+On first visit to OpenWebUI, you'll need to:
+1. Create an admin account with your preferred credentials
+2. Configure the API connection manually:
+   - **API Base URL**: http://localhost:8088
+   - **API Key**: dummy-key-not-needed
 
 ## 🎯 System Prompts
 

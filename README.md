@@ -5,7 +5,7 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 ## Features
 
 - 🔍 **Natural Language Q&A**: Ask questions about your documents in plain English
-- 🖥️ **Beautiful Web UI**: Modern chat interface with real-time system monitoring
+- 🖥️ **Beautiful Web UI**: OpenWebUI integration for professional chat interface
 - 📚 **Multiple File Types**: Supports PDF, DOCX, and TXT files
 - 🌍 **Multilingual**: Uses BAAI/bge-m3 embeddings supporting 100+ languages
 - 🏠 **Privacy-First**: All document processing happens locally, only queries go to LLM
@@ -41,8 +41,11 @@ A Retrieval-Augmented Generation (RAG) system that enables natural language Q&A 
 git clone <this-repo>
 cd paperless-rag
 
-# Copy environment template
-cp env.example .env
+# Single command setup
+python setup.py
+
+# Verify everything works
+python test_setup.py
 ```
 
 ### 2. Configure Environment
