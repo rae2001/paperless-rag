@@ -43,7 +43,7 @@ def check_docker_permissions():
 
 def restart_api():
     """Restart the API with updated CORS settings."""
-    print("🔄 Updating API with new CORS settings...")
+    print("🔄 Restarting API to apply configuration...")
     
     compose_cmd = detect_docker_compose()
     if not compose_cmd:
@@ -53,16 +53,23 @@ def restart_api():
     need_sudo = not check_docker_permissions()
     sudo_prefix = "sudo " if need_sudo else ""
     
-    # Restart the API container
-    cmd = f"{sudo_prefix}{compose_cmd} restart rag-api"
-    print(f"Running: {cmd}")
-    result = subprocess.run(cmd, shell=True)
+    # Stop and start for a clean restart (more reliable than restart)
+    print("🛑 Stopping containers...")
+    stop_cmd = f"{sudo_prefix}{compose_cmd} down"
+    result = subprocess.run(stop_cmd, shell=True, capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        print(f"⚠️  Stop command had issues: {result.stderr}")
+    
+    print("🚀 Starting containers...")
+    start_cmd = f"{sudo_prefix}{compose_cmd} up --build -d"
+    result = subprocess.run(start_cmd, shell=True, capture_output=True, text=True)
     
     if result.returncode == 0:
-        print("✅ API restarted successfully")
+        print("✅ API containers started successfully")
         return True
     else:
-        print("❌ Failed to restart API")
+        print(f"❌ Failed to start API: {result.stderr}")
         return False
 
 
@@ -98,7 +105,7 @@ def start_ui_server():
     
     try:
         with socketserver.TCPServer(("", PORT), CORSHTTPRequestHandler) as httpd:
-            print(f"🌐 UI Server started at: http://localhost:{PORT}")
+            print(f"🌐 UI Server started at: http://192.168.1.77:{PORT}")
             httpd.serve_forever()
     except Exception as e:
         print(f"❌ UI Server error: {e}")
@@ -119,20 +126,33 @@ def main():
     if not restart_api():
         print("⚠️  API restart failed, continuing anyway...")
     
-    # Wait for API to start
+    # Wait for API to start and test with retries
     print("⏳ Waiting for API to start...")
-    time.sleep(5)
+    max_retries = 12  # 60 seconds total (5 seconds per retry)
+    retry_count = 0
+    api_ready = False
     
-    # Test API
-    try:
-        import requests
-        response = requests.get("http://192.168.1.77:8088/health", timeout=5)
-        if response.status_code == 200:
-            print("✅ API is running")
-        else:
-            print(f"⚠️  API returned status {response.status_code}")
-    except Exception as e:
-        print(f"⚠️  API test failed: {e}")
+    import requests
+    
+    while retry_count < max_retries and not api_ready:
+        try:
+            print(f"   Attempt {retry_count + 1}/{max_retries}...")
+            response = requests.get("http://192.168.1.77:8088/health", timeout=10)
+            if response.status_code == 200:
+                print("✅ API is running and healthy!")
+                api_ready = True
+            else:
+                print(f"   API returned status {response.status_code}, retrying...")
+        except Exception as e:
+            print(f"   Connection failed: {str(e)[:50]}..., retrying...")
+        
+        if not api_ready:
+            retry_count += 1
+            time.sleep(5)
+    
+    if not api_ready:
+        print("⚠️  API failed to start properly after 60 seconds")
+        print("   You can still try the UI, or check: docker logs rag-api")
     
     # Start UI server in background thread
     ui_thread = threading.Thread(target=start_ui_server, daemon=True)
