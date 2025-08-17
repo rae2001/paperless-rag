@@ -142,7 +142,7 @@ def main():
     time.sleep(2)
     
     # Open browser
-    url = "http://localhost:3001"
+    url = "http://192.168.1.77:3001"
     try:
         webbrowser.open(url)
         print(f"🚀 Opened browser at: {url}")
