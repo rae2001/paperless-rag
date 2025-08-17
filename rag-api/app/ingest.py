@@ -136,10 +136,11 @@ def upsert_chunks_to_qdrant(
     
     points = []
     for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
-        # Generate a unique ID based on doc_id, page, and chunk index
+        # Generate a unique integer ID based on doc_id, page, and chunk index
         doc_id = chunk['doc_id']
         page = chunk.get('page', 0) or 0
-        point_id = f"{doc_id}_{page}_{i}"
+        # Create unique integer ID: doc_id * 1000000 + page * 1000 + chunk_index
+        point_id = doc_id * 1000000 + page * 1000 + i
         
         points.append(PointStruct(
             id=point_id,

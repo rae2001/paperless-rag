@@ -53,6 +53,20 @@ HTTP error calling OpenRouter: Client error '402 Payment Required'
 
 **For testing**: Use free tier models or add $5-10 credits.
 
+### Qdrant Point ID Issues
+
+If you see this error during ingestion:
+```
+"value 1_1_0 is not a valid point ID, valid values are either an unsigned integer or a UUID"
+```
+
+**Problem**: Qdrant expects integer or UUID point IDs, not strings.
+**Solution**: The ingest.py has been updated to use integer IDs. Restart the API:
+
+```bash
+python3 quick_fix_ingestion.py
+```
+
 ### Problem
 The error shows:
 ```
